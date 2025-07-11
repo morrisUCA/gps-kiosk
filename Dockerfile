@@ -6,4 +6,3 @@ ENV IS_IN_DOCKER=true
 USER node
 EXPOSE 3000
 
-ENTRYPOINT ["/usr/local/bin/signalk-server"]
