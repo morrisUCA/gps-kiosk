@@ -55,12 +55,14 @@ try {
         
         Write-Host "Docker Desktop installation completed."
         exit 0
-    } else {
+    }
+    else {
         Write-Host "Docker Desktop installation failed with exit code: $($process.ExitCode)"
         exit 1
     }
 
-} catch {
+}
+catch {
     Write-Host "Error during Docker Desktop installation: $($_.Exception.Message)"
     exit 1
 }

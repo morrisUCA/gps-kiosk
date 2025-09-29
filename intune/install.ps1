@@ -34,7 +34,8 @@ if (-not (Test-Path $dockerPath)) {
             Write-Host "Docker Desktop installation failed or timed out. Exiting."
             exit 1
         }
-    } catch {
+    }
+    catch {
         Write-Host "Failed to install Docker Desktop from Microsoft Store: $($_.Exception.Message)"
         exit 1
     }
@@ -56,7 +57,8 @@ if (-not $dockerProcess) {
             docker version | Out-Null
             $dockerReady = $true
             break
-        } catch {
+        }
+        catch {
             $dockerReady = $false
         }
     } while ($elapsed -lt $timeout -and -not $dockerReady)
@@ -67,7 +69,8 @@ if (-not $dockerProcess) {
     }
     
     Write-Host "Docker Desktop is ready."
-} else {
+}
+else {
     Write-Host "Docker Desktop is already running."
 }
 

@@ -12,12 +12,15 @@ try {
         if ($dockerVersion -and $dockerVersion -like "*Docker version*") {
             Write-Output "Docker Desktop is installed: $dockerVersion"
             exit 0
-        } else {
+        }
+        else {
             exit 1
         }
-    } catch {
+    }
+    catch {
         exit 1
     }
-} catch {
+}
+catch {
     exit 1
 }
