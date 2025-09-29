@@ -1,0 +1,3 @@
+@echo off
+echo Installing Docker Desktop...
+powershell.exe -ExecutionPolicy Bypass -File "%~dp0install-docker.ps1"

@@ -1,6 +1,5 @@
 # docker-compose.yml
 
-
 services:
   gps-kiosk:
     image: morrisuca/gps-kiosk:latest
@@ -8,10 +7,7 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      - gps-signalk:/home/node/.signalk
+      - ./Volume:/home/node/.signalk
     environment:
       - IS_IN_DOCKER=true
     restart: unless-stopped
-
-volumes:
-  gps-signalk:
