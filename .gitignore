@@ -1,0 +1,27 @@
+# Docker Desktop Installer (too large for git)
+docker-intune/Docker Desktop Installer.exe
+
+# Other large installers
+*.exe
+
+# Temporary files
+*.tmp
+*.temp
+
+# Logs
+*.log
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/settings.json
+.idea/
+
+# Node modules (if any)
+node_modules/
+
+# Build outputs
+dist/
+build/
