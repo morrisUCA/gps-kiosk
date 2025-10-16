@@ -7,14 +7,52 @@ $repoURL = "https://github.com/morrisUCA/gps-kiosk.git"
 $repoPath = "C:\gps-kiosk"
 $browserURL = "http://localhost:3000"
 
-# Check if Docker Desktop is installed, install from Microsoft Store if needed
+# Check if Docker Desktop is installed, install if needed
 $dockerPath = "C:\Program Files\Docker\Docker\Docker Desktop.exe"
 if (-not (Test-Path $dockerPath)) {
-    Write-Host "Docker Desktop not found. Installing from Microsoft Store..."
+    Write-Host "Docker Desktop not found. Installing..."
     
     try {
-        # Install Docker Desktop from Microsoft Store using winget
-        winget install --id Docker.DockerDesktop --source msstore --accept-package-agreements --accept-source-agreements --silent
+        # Try multiple installation methods
+        $installSuccess = $false
+        
+        # Method 1: Try winget from default source (not MS Store)
+        Write-Host "Attempting installation via winget..."
+        try {
+            $result = winget install Docker.DockerDesktop --accept-package-agreements --accept-source-agreements --silent
+            if ($LASTEXITCODE -eq 0) {
+                $installSuccess = $true
+                Write-Host "Docker Desktop installed via winget."
+            }
+        }
+        catch {
+            Write-Host "Winget installation failed: $($_.Exception.Message)"
+        }
+        
+        # Method 2: Direct download and install if winget failed
+        if (-not $installSuccess) {
+            Write-Host "Downloading Docker Desktop directly..."
+            $dockerUrl = "https://desktop.docker.com/win/main/amd64/Docker%20Desktop%20Installer.exe"
+            $dockerInstaller = "$env:TEMP\DockerDesktopInstaller.exe"
+            
+            Invoke-WebRequest -Uri $dockerUrl -OutFile $dockerInstaller -UseBasicParsing
+            
+            Write-Host "Installing Docker Desktop..."
+            $process = Start-Process -FilePath $dockerInstaller -ArgumentList "install --quiet --accept-license" -Wait -PassThru
+            
+            if ($process.ExitCode -eq 0) {
+                $installSuccess = $true
+                Write-Host "Docker Desktop installed via direct download."
+            }
+            
+            # Clean up installer
+            Remove-Item $dockerInstaller -Force -ErrorAction SilentlyContinue
+        }
+        
+        if (-not $installSuccess) {
+            Write-Host "All Docker installation methods failed. Exiting."
+            exit 1
+        }
         
         # Wait for installation to complete
         Write-Host "Waiting for Docker Desktop installation to complete..."
@@ -36,7 +74,7 @@ if (-not (Test-Path $dockerPath)) {
         }
     }
     catch {
-        Write-Host "Failed to install Docker Desktop from Microsoft Store: $($_.Exception.Message)"
+        Write-Host "Failed to install Docker Desktop: $($_.Exception.Message)"
         exit 1
     }
 }

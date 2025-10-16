@@ -5,9 +5,9 @@
 2. Place it in this folder alongside the scripts
 
 ## Files in this package:
-- `docker-installer.bat` - Entry point for Intune
-- `install-docker.ps1` - Installation logic
-- `detect-docker.ps1` - Detection script for Intune
+- `docker-installer.bat` - Entry point for Intune (with logging)
+- `install-docker.ps1` - Installation logic with error handling
+- `detect-docker.ps1` - Robust detection script for Intune
 - `Docker Desktop Installer.exe` - (You need to download this)
 
 ## Intune Configuration for Docker Desktop:
@@ -37,3 +37,9 @@ Use the `detect-docker.ps1` PowerShell script
 ```
 
 This will create `docker-installer.intunewin` for deployment.
+
+## Troubleshooting:
+- Check logs at `C:\temp\docker-intune.log` and `C:\temp\docker-install.log`
+- Verify "Docker Desktop Installer.exe" is present in the package
+- Ensure target devices meet system requirements
+- Check Intune device compliance and installation status
