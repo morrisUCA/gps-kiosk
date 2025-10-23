@@ -5,6 +5,21 @@
         "**/.hg": true,
         "**/.DS_Store": true,
         "**/Thumbs.db": true,
-        ".mule": true
+        "**/node_modules": true,
+        "**/*.intunewin": true,
+        "**/Docker Desktop Installer.exe": true,
+        "**/IntuneWinAppUtil.exe": true
+    },
+    "files.associations": {
+        "*.ps1": "powershell",
+        "docker-compose.yml": "yaml",
+        "Dockerfile": "dockerfile"
+    },
+    "powershell.codeFormatting.preset": "OTBS",
+    "yaml.schemas": {
+        "https://raw.githubusercontent.com/compose-spec/compose-spec/master/schema/compose-spec.json": [
+            "docker-compose.yml",
+            "docker-compose.yaml"
+        ]
     }
 }

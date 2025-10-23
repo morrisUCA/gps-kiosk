@@ -1,27 +1,51 @@
 # Docker Desktop Installer (too large for git)
 docker-intune/Docker Desktop Installer.exe
 
-# Other large installers
+# Large installers and executables
 *.exe
+IntuneWinAppUtil.exe
 
 # Temporary files
 *.tmp
 *.temp
-
-# Logs
 *.log
+
+# Generated Intune packages (can be rebuilt)
+intune_out/*.intunewin
 
 # OS generated files
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
 
 # IDE files
 .vscode/settings.json
+.vscode/launch.json
 .idea/
+*.swp
+*.swo
 
 # Node modules (if any)
 node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
 # Build outputs
 dist/
 build/
+*.tar.gz
+
+# Docker
+.docker/
+
+# Windows shortcuts
+*.lnk
+
+# Generated startup scripts
+start-gps-kiosk.bat
+update-gps-kiosk.bat
