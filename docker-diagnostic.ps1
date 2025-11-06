@@ -14,9 +14,9 @@ $issues = @()
 # Check 1: Docker Desktop Installation
 Write-Host "1. Checking Docker Desktop installation..." -ForegroundColor Yellow
 if (Test-Path $dockerPath) {
-    Write-Host "   ✅ Docker Desktop is installed" -ForegroundColor Green
+    Write-Host "   [OK] Docker Desktop is installed" -ForegroundColor Green
 } else {
-    Write-Host "   ❌ Docker Desktop not found" -ForegroundColor Red
+    Write-Host "   [ERROR] Docker Desktop not found" -ForegroundColor Red
     $issues += "Docker Desktop is not installed"
 }
 
@@ -24,13 +24,13 @@ if (Test-Path $dockerPath) {
 Write-Host "2. Checking Docker Desktop process..." -ForegroundColor Yellow
 $dockerProcess = Get-Process -Name "Docker Desktop" -ErrorAction SilentlyContinue
 if ($dockerProcess) {
-    Write-Host "   ✅ Docker Desktop process is running" -ForegroundColor Green
+    Write-Host "   [OK] Docker Desktop process is running" -ForegroundColor Green
 } else {
-    Write-Host "   ❌ Docker Desktop process not found" -ForegroundColor Red
+    Write-Host "   [ERROR] Docker Desktop process not found" -ForegroundColor Red
     $issues += "Docker Desktop is not running"
     
     if ($Fix -and (Test-Path $dockerPath)) {
-        Write-Host "   🔧 Starting Docker Desktop..." -ForegroundColor Cyan
+        Write-Host "   [FIX] Starting Docker Desktop..." -ForegroundColor Cyan
         Start-Process $dockerPath
         Start-Sleep -Seconds 10
     }
