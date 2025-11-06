@@ -8,7 +8,8 @@
         "**/node_modules": true,
         "**/*.intunewin": true,
         "**/Docker Desktop Installer.exe": true,
-        "**/IntuneWinAppUtil.exe": true
+        "**/IntuneWinAppUtil.exe": true,
+        ".mule": true
     },
     "files.associations": {
         "*.ps1": "powershell",
