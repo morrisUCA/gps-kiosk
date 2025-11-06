@@ -52,8 +52,7 @@ do {
         docker version | Out-Null
         Write-Host "Docker is ready." -ForegroundColor Green
         break
-    }
-    catch {
+    } catch {
         if ($elapsed -ge $timeout) {
             Write-Host "Docker daemon timeout. Please check Docker Desktop status." -ForegroundColor Red
             exit 1
@@ -75,8 +74,7 @@ $zipPath = "$TempPath\gps-kiosk.zip"
 try {
     Invoke-WebRequest -Uri $zipUrl -OutFile $zipPath -UseBasicParsing
     Write-Host "Downloaded successfully!" -ForegroundColor Green
-}
-catch {
+} catch {
     Write-Host "Failed to download from GitHub: $($_.Exception.Message)" -ForegroundColor Red
     exit 1
 }
@@ -95,8 +93,7 @@ try {
     }
     
     Write-Host "Extracted to: $($extractedFolder.FullName)" -ForegroundColor Green
-}
-catch {
+} catch {
     Write-Host "Failed to extract ZIP file: $($_.Exception.Message)" -ForegroundColor Red
     exit 1
 }
@@ -108,8 +105,7 @@ if (Test-Path $InstallPath) {
     try {
         Set-Location $InstallPath
         docker compose down 2>$null
-    }
-    catch {
+    } catch {
         # Ignore errors if docker-compose.yml doesn't exist
     }
     Remove-Item -Recurse -Force $InstallPath
@@ -120,8 +116,7 @@ Write-Host "Installing to $InstallPath..." -ForegroundColor Yellow
 try {
     Move-Item -Path $extractedFolder.FullName -Destination $InstallPath
     Write-Host "Installation files copied successfully!" -ForegroundColor Green
-}
-catch {
+} catch {
     Write-Host "Failed to move files: $($_.Exception.Message)" -ForegroundColor Red
     exit 1
 }
@@ -137,8 +132,7 @@ Write-Host "Stopping existing containers..." -ForegroundColor Yellow
 try {
     docker compose down 2>$null
     Write-Host "Existing containers stopped." -ForegroundColor Green
-}
-catch {
+} catch {
     Write-Host "No existing containers to stop or error occurred." -ForegroundColor Yellow
 }
 
@@ -147,8 +141,7 @@ Write-Host "Pulling latest Docker images..." -ForegroundColor Yellow
 try {
     docker compose pull
     Write-Host "Docker images pulled successfully." -ForegroundColor Green
-}
-catch {
+} catch {
     Write-Host "Warning: Failed to pull images: $($_.Exception.Message)" -ForegroundColor Yellow
     Write-Host "Continuing with existing images..." -ForegroundColor Yellow
 }
@@ -158,8 +151,7 @@ Write-Host "Starting GPS Kiosk containers..." -ForegroundColor Yellow
 try {
     docker compose up -d
     Write-Host "Containers started successfully." -ForegroundColor Green
-}
-catch {
+} catch {
     Write-Host "Failed to start containers: $($_.Exception.Message)" -ForegroundColor Red
     Write-Host "Please check Docker Desktop is running and try again." -ForegroundColor Yellow
     exit 1
@@ -181,8 +173,7 @@ do {
             Write-Host "Application is ready!" -ForegroundColor Green
             break
         }
-    }
-    catch {
+    } catch {
         # Application not ready yet
     }
 } while ($attempt -lt $maxAttempts)

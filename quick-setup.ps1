@@ -21,8 +21,7 @@ function Install-DockerDesktop {
             Write-Host "Docker Desktop installed via winget." -ForegroundColor Green
             return $true
         }
-    }
-    catch {
+    } catch {
         Write-Host "Winget installation failed, trying direct download..." -ForegroundColor Yellow
     }
     
@@ -43,8 +42,7 @@ function Install-DockerDesktop {
             Write-Host "Docker Desktop installed successfully." -ForegroundColor Green
             return $true
         }
-    }
-    catch {
+    } catch {
         Write-Host "Failed to install Docker: $($_.Exception.Message)" -ForegroundColor Red
         return $false
     }
@@ -92,8 +90,7 @@ function Start-DockerDesktop {
             docker version | Out-Null
             Write-Host "Docker daemon is ready." -ForegroundColor Green
             return $true
-        }
-        catch {
+        } catch {
             # Docker daemon not ready yet
         }
     } while ($elapsed -lt $timeout)
@@ -144,8 +141,7 @@ if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
             throw "Git installation verification failed"
         }
         Write-Host "Git installed successfully." -ForegroundColor Green
-    }
-    catch {
+    } catch {
         Write-Host "Warning: Git installation failed. Will use direct download method." -ForegroundColor Yellow
     }
 }
@@ -164,8 +160,7 @@ function Get-Repository {
                 git pull
                 Write-Host "Repository updated via Git." -ForegroundColor Green
                 return
-            }
-            catch {
+            } catch {
                 Write-Host "Git pull failed, trying fresh download..." -ForegroundColor Yellow
                 Remove-Item -Recurse -Force $Path
             }
@@ -180,8 +175,7 @@ function Get-Repository {
             Set-Location $Path
             Write-Host "Repository cloned via Git." -ForegroundColor Green
             return
-        }
-        catch {
+        } catch {
             Write-Host "Git clone failed, trying direct download..." -ForegroundColor Yellow
         }
     }
@@ -231,8 +225,7 @@ Write-Host "Stopping existing containers..." -ForegroundColor Yellow
 try {
     docker compose down 2>$null
     Write-Host "Existing containers stopped." -ForegroundColor Green
-}
-catch {
+} catch {
     Write-Host "No existing containers to stop or error occurred: $($_.Exception.Message)" -ForegroundColor Yellow
 }
 
@@ -241,8 +234,7 @@ Write-Host "Pulling latest Docker images from Docker Hub..." -ForegroundColor Ye
 try {
     docker compose pull
     Write-Host "Docker images pulled successfully." -ForegroundColor Green
-}
-catch {
+} catch {
     Write-Host "Warning: Failed to pull images: $($_.Exception.Message)" -ForegroundColor Yellow
     Write-Host "Continuing with existing images..." -ForegroundColor Yellow
 }
@@ -252,8 +244,7 @@ Write-Host "Starting GPS Kiosk containers..." -ForegroundColor Yellow
 try {
     docker compose up -d
     Write-Host "Containers started successfully." -ForegroundColor Green
-}
-catch {
+} catch {
     Write-Host "Failed to start containers: $($_.Exception.Message)" -ForegroundColor Red
     Write-Host "Please check Docker Desktop is running and try again." -ForegroundColor Yellow
     exit 1
@@ -275,8 +266,7 @@ do {
             Write-Host "Application is ready!" -ForegroundColor Green
             break
         }
-    }
-    catch {
+    } catch {
         # Application not ready yet
     }
 } while ($attempt -lt $maxAttempts)

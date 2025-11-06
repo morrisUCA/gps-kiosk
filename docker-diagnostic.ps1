@@ -45,8 +45,7 @@ try {
     } else {
         throw "No version returned"
     }
-}
-catch {
+} catch {
     Write-Host "   ❌ Docker daemon is not responding" -ForegroundColor Red
     $issues += "Docker daemon is not accessible"
 }
@@ -60,8 +59,7 @@ try {
     } else {
         throw "No compose version"
     }
-}
-catch {
+} catch {
     Write-Host "   ❌ Docker Compose is not available" -ForegroundColor Red
     $issues += "Docker Compose is not working"
 }
@@ -85,8 +83,7 @@ try {
         Write-Host "   ⚠️  Containers feature is not enabled" -ForegroundColor Yellow
         $issues += "Containers feature may need to be enabled"
     }
-}
-catch {
+} catch {
     Write-Host "   ⚠️  Could not check Windows features" -ForegroundColor Yellow
 }
 
