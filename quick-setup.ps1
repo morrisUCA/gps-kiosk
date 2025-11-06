@@ -87,15 +87,30 @@ function Start-DockerDesktop {
         Start-Sleep -Seconds 5
         $elapsed += 5
         try {
-            docker version | Out-Null
+            $dockerVersionOutput = docker version 2>&1
+            $dockerVersionString = $dockerVersionOutput -join " "
+            
+            # Check for API errors that indicate Docker daemon issues
+            if ($dockerVersionString -like "*500 Internal Server Error*" -or 
+                $dockerVersionString -like "*Access is denied*" -or
+                $dockerVersionString -like "*docker daemon is not running*") {
+                throw "Docker daemon has internal errors: $dockerVersionString"
+            }
+            
+            # If we get here without errors, Docker is working
             Write-Host "Docker daemon is ready." -ForegroundColor Green
             return $true
         } catch {
-            # Docker daemon not ready yet
+            if ($elapsed -gt 60) {
+                Write-Host "   Docker error: $($_.Exception.Message)" -ForegroundColor Red
+            }
+            # Docker daemon not ready yet, continue waiting
         }
     } while ($elapsed -lt $timeout)
     
     Write-Host "Docker daemon failed to become ready within timeout." -ForegroundColor Red
+    Write-Host "This is likely due to missing Windows features (Hyper-V, Containers)." -ForegroundColor Yellow
+    Write-Host "Run the diagnostic script: .\docker-diagnostic.ps1" -ForegroundColor Cyan
     return $false
 }
 
@@ -223,30 +238,65 @@ if (-not (Test-Path $volumePath)) {
 # Stop any existing containers to update safely
 Write-Host "Stopping existing containers..." -ForegroundColor Yellow
 try {
-    docker compose down 2>$null
+    $downOutput = docker compose down 2>&1
+    $downString = $downOutput -join " "
+    
+    if ($downString -like "*500 Internal Server Error*" -or $downString -like "*Access is denied*") {
+        throw "Docker API Error: $downString"
+    }
     Write-Host "Existing containers stopped." -ForegroundColor Green
 } catch {
-    Write-Host "No existing containers to stop or error occurred: $($_.Exception.Message)" -ForegroundColor Yellow
+    Write-Host "No existing containers to stop or Docker error: $($_.Exception.Message)" -ForegroundColor Yellow
+    if ($_.Exception.Message -like "*500 Internal Server Error*") {
+        Write-Host "ERROR: Docker daemon has internal errors. Check Windows features." -ForegroundColor Red
+        Write-Host "Run: .\docker-diagnostic.ps1 for detailed diagnostics" -ForegroundColor Cyan
+        exit 1
+    }
 }
 
 # Always pull latest Docker images from Docker Hub
 Write-Host "Pulling latest Docker images from Docker Hub..." -ForegroundColor Yellow
 try {
-    docker compose pull
+    $pullOutput = docker compose pull 2>&1
+    $pullString = $pullOutput -join " "
+    
+    if ($pullString -like "*500 Internal Server Error*" -or $pullString -like "*Access is denied*") {
+        throw "Docker API Error: $pullString"
+    }
     Write-Host "Docker images pulled successfully." -ForegroundColor Green
 } catch {
     Write-Host "Warning: Failed to pull images: $($_.Exception.Message)" -ForegroundColor Yellow
+    if ($_.Exception.Message -like "*500 Internal Server Error*") {
+        Write-Host "ERROR: Docker daemon has internal errors. Cannot pull images." -ForegroundColor Red
+        Write-Host "Run: .\docker-diagnostic.ps1 for detailed diagnostics" -ForegroundColor Cyan
+        exit 1
+    }
     Write-Host "Continuing with existing images..." -ForegroundColor Yellow
 }
 
 # Start containers
 Write-Host "Starting GPS Kiosk containers..." -ForegroundColor Yellow
 try {
-    docker compose up -d
+    $upOutput = docker compose up -d 2>&1
+    $upString = $upOutput -join " "
+    
+    if ($upString -like "*500 Internal Server Error*" -or $upString -like "*Access is denied*") {
+        throw "Docker API Error: $upString"
+    }
     Write-Host "Containers started successfully." -ForegroundColor Green
 } catch {
     Write-Host "Failed to start containers: $($_.Exception.Message)" -ForegroundColor Red
-    Write-Host "Please check Docker Desktop is running and try again." -ForegroundColor Yellow
+    if ($_.Exception.Message -like "*500 Internal Server Error*") {
+        Write-Host "ERROR: Docker daemon has internal errors. Cannot start containers." -ForegroundColor Red
+        Write-Host "This is caused by missing Windows features." -ForegroundColor Yellow
+        Write-Host ""
+        Write-Host "SOLUTION:" -ForegroundColor Cyan
+        Write-Host "1. Run as Administrator:" -ForegroundColor White
+        Write-Host "   Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V -All" -ForegroundColor Gray
+        Write-Host "   Enable-WindowsOptionalFeature -Online -FeatureName Containers -All" -ForegroundColor Gray
+        Write-Host "2. Restart the computer" -ForegroundColor White
+        Write-Host "3. Run this script again" -ForegroundColor White
+    }
     exit 1
 }
 
