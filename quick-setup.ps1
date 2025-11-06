@@ -428,6 +428,71 @@ Write-Host "  - Startup script: $startupPath" -ForegroundColor White
 Write-Host "  - Update script: $updatePath" -ForegroundColor White
 Write-Host "  - Windows startup: $shortcutPath" -ForegroundColor White
 
+# Configure kiosk auto-login (optional)
+Write-Host ""
+Write-Host "=== Kiosk Auto-Login Configuration ===" -ForegroundColor Yellow
+Write-Host "For unattended operation, you can configure automatic login." -ForegroundColor White
+Write-Host "This is optional but recommended for dedicated GPS displays." -ForegroundColor White
+Write-Host ""
+
+$configureAutoLogin = Read-Host "Configure auto-login for kiosk mode? (y/N)"
+if ($configureAutoLogin -like "y*") {
+    $username = Read-Host "Enter Windows username for auto-login"
+    $password = Read-Host "Enter password for $username" -AsSecureString
+    $plainPassword = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($password))
+    
+    Write-Host "Configuring auto-login and kiosk settings..." -ForegroundColor Yellow
+    
+    try {
+        # Check if running as Administrator
+        $currentUser = [System.Security.Principal.WindowsIdentity]::GetCurrent()
+        $principal = New-Object System.Security.Principal.WindowsPrincipal($currentUser)
+        $isAdmin = $principal.IsInRole([System.Security.Principal.WindowsBuiltInRole]::Administrator)
+        
+        if ($isAdmin) {
+            # Configure auto-login registry entries
+            $winlogonPath = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon"
+            Set-ItemProperty -Path $winlogonPath -Name "AutoAdminLogon" -Value "1" -Type String
+            Set-ItemProperty -Path $winlogonPath -Name "DefaultUserName" -Value $username -Type String
+            Set-ItemProperty -Path $winlogonPath -Name "DefaultPassword" -Value $plainPassword -Type String
+            Set-ItemProperty -Path $winlogonPath -Name "AutoLogonCount" -Value 0 -Type DWord
+            
+            # Disable lock screen
+            $personalizationPath = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Personalization"
+            if (-not (Test-Path $personalizationPath)) {
+                New-Item -Path $personalizationPath -Force | Out-Null
+            }
+            Set-ItemProperty -Path $personalizationPath -Name "NoLockScreen" -Value 1 -Type DWord
+            
+            # Configure power settings for always-on display
+            Start-Process "powercfg" -ArgumentList "/change", "standby-timeout-ac", "0" -Wait -NoNewWindow
+            Start-Process "powercfg" -ArgumentList "/change", "monitor-timeout-ac", "0" -Wait -NoNewWindow
+            Start-Process "powercfg" -ArgumentList "/change", "hibernate-timeout-ac", "0" -Wait -NoNewWindow
+            
+            Write-Host "Auto-login configured successfully!" -ForegroundColor Green
+            Write-Host "  ✅ Auto-login enabled for: $username" -ForegroundColor White
+            Write-Host "  ✅ Lock screen disabled" -ForegroundColor White
+            Write-Host "  ✅ Display set to always-on" -ForegroundColor White
+            
+        } else {
+            Write-Host "WARNING: Not running as Administrator - auto-login not configured" -ForegroundColor Yellow
+            Write-Host "To enable auto-login later, run as Administrator:" -ForegroundColor White
+            Write-Host "  .\configure-auto-login.ps1 -Username '$username' -Password 'YourPassword'" -ForegroundColor Gray
+        }
+        
+    } catch {
+        Write-Host "Warning: Auto-login configuration failed: $($_.Exception.Message)" -ForegroundColor Yellow
+        Write-Host "You can configure it manually later with: .\configure-auto-login.ps1" -ForegroundColor White
+    }
+    
+    # Clear password from memory
+    $plainPassword = $null
+} else {
+    Write-Host "Auto-login skipped. You can configure it later with:" -ForegroundColor White
+    Write-Host "  .\configure-auto-login.ps1 -Username 'YourUsername' -Password 'YourPassword'" -ForegroundColor Gray
+}
+
+Write-Host ""
 # Launch the application now
 Write-Host "Launching GPS Kiosk..." -ForegroundColor Green
 Start-Process "msedge.exe" "--kiosk `"http://localhost:3000/@signalk/freeboard-sk/?zoom=12&northup=1&movemap=1&kiosk=1`" --edge-kiosk-type=fullscreen --no-first-run --user-data-dir=C:\KioskBrowser"
