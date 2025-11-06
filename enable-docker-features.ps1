@@ -19,7 +19,7 @@ if (-not $isAdmin) {
     exit 1
 }
 
-Write-Host "Running as Administrator ✓" -ForegroundColor Green
+Write-Host "Running as Administrator - OK" -ForegroundColor Green
 Write-Host ""
 
 # Check current feature status
@@ -37,18 +37,19 @@ try {
     $needsContainers = $containers.State -ne "Enabled"
     
     if (-not $needsHyperV -and -not $needsContainers) {
-        Write-Host "✓ All required features are already enabled!" -ForegroundColor Green
+        Write-Host "SUCCESS: All required features are already enabled!" -ForegroundColor Green
         Write-Host "Your Docker should work properly now." -ForegroundColor Green
         exit 0
     }
     
+    Write-Host "The following features need to be enabled:" -ForegroundColor Yellow
+    if ($needsHyperV) { Write-Host "  - Hyper-V Platform" -ForegroundColor White }
+    if ($needsContainers) { Write-Host "  - Containers" -ForegroundColor White }
+    Write-Host ""
+    Write-Host "WARNING: A computer restart will be required after enabling these features." -ForegroundColor Red
+    Write-Host ""
+    
     if (-not $Force) {
-        Write-Host "The following features need to be enabled:" -ForegroundColor Yellow
-        if ($needsHyperV) { Write-Host "  - Hyper-V Platform" -ForegroundColor White }
-        if ($needsContainers) { Write-Host "  - Containers" -ForegroundColor White }
-        Write-Host ""
-        Write-Host "WARNING: A computer restart will be required after enabling these features." -ForegroundColor Red
-        Write-Host ""
         $response = Read-Host "Do you want to continue? (y/N)"
         if ($response -notlike "y*") {
             Write-Host "Operation cancelled." -ForegroundColor Yellow
@@ -63,30 +64,20 @@ try {
     
     if ($needsHyperV) {
         Write-Host "Enabling Hyper-V..." -ForegroundColor Cyan
-        try {
-            $result = Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V -All -NoRestart
-            if ($result.RestartNeeded) {
-                $restartRequired = $true
-            }
-            Write-Host "✓ Hyper-V enabled successfully" -ForegroundColor Green
-        } catch {
-            Write-Host "✗ Failed to enable Hyper-V: $($_.Exception.Message)" -ForegroundColor Red
-            exit 1
+        $result = Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V -All -NoRestart
+        if ($result.RestartNeeded) {
+            $restartRequired = $true
         }
+        Write-Host "Hyper-V enabled successfully" -ForegroundColor Green
     }
     
     if ($needsContainers) {
         Write-Host "Enabling Containers..." -ForegroundColor Cyan
-        try {
-            $result = Enable-WindowsOptionalFeature -Online -FeatureName Containers -All -NoRestart
-            if ($result.RestartNeeded) {
-                $restartRequired = $true
-            }
-            Write-Host "✓ Containers enabled successfully" -ForegroundColor Green
-        } catch {
-            Write-Host "✗ Failed to enable Containers: $($_.Exception.Message)" -ForegroundColor Red
-            exit 1
+        $result = Enable-WindowsOptionalFeature -Online -FeatureName Containers -All -NoRestart
+        if ($result.RestartNeeded) {
+            $restartRequired = $true
         }
+        Write-Host "Containers enabled successfully" -ForegroundColor Green
     }
     
     Write-Host ""
@@ -115,5 +106,9 @@ try {
 } catch {
     Write-Host "ERROR: Failed to check Windows features: $($_.Exception.Message)" -ForegroundColor Red
     Write-Host "This might be a permission issue or unsupported Windows version." -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "Manual commands to try:" -ForegroundColor Yellow
+    Write-Host "Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V -All" -ForegroundColor Gray
+    Write-Host "Enable-WindowsOptionalFeature -Online -FeatureName Containers -All" -ForegroundColor Gray
     exit 1
 }
