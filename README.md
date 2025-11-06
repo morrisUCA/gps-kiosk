@@ -5,10 +5,12 @@ A containerized marine navigation kiosk built on Signal K technology, designed f
 ## 🚀 Quick Start
 
 ### For End Users (Recommended)
+
 1. **Download and run**: `setup.bat`
 2. **Done!** The system will auto-install Docker, pull latest images, and launch in kiosk mode
 
 ### For IT Deployment
+
 1. **Intune Packages**: Use files in `intune_out/` folder
 2. **Direct Download**: Use `download.bat` for non-Git environments
 
@@ -77,7 +79,9 @@ gps-kiosk/
 ## 🔧 Configuration
 
 ### NMEA Data Source
+
 Edit `Volume/settings.json` to configure your marine data source:
+
 ```json
 {
   "pipedProviders": [
@@ -101,7 +105,9 @@ Edit `Volume/settings.json` to configure your marine data source:
 ```
 
 ### Chart Configuration
+
 Charts are configured in the Freeboard interface:
+
 - **OpenStreetMap**: Base mapping
 - **OpenSeaMap**: Marine-specific overlay
 - **Custom Charts**: S-57 ENC support available
@@ -109,6 +115,7 @@ Charts are configured in the Freeboard interface:
 ## 🚀 Deployment Options
 
 ### 1. Manual Installation
+
 ```bash
 # Clone repository
 git clone https://github.com/morrisUCA/gps-kiosk.git
@@ -119,12 +126,14 @@ cd gps-kiosk
 ```
 
 ### 2. Direct Download (No Git Required)
+
 ```bash
 # Download and run
 ./download.bat
 ```
 
 ### 3. Enterprise (Microsoft Intune)
+
 1. Upload `gps-kiosk-launcher.intunewin` to Intune
 2. Configure detection rule with `detection.ps1`
 3. Deploy to device groups
@@ -132,11 +141,13 @@ cd gps-kiosk
 ## 🔄 Updates
 
 The system automatically updates on every restart:
+
 - **Docker Images**: Pulls latest from Docker Hub
 - **Configuration**: Syncs from GitHub repository
 - **Dependencies**: Auto-managed by container
 
 ### Manual Update
+
 ```bash
 # Run the update script
 ./update-gps-kiosk.bat
@@ -149,6 +160,7 @@ docker compose up -d
 ## 🛠️ Development
 
 ### Building Custom Images
+
 ```bash
 # Build locally
 docker build -t gps-kiosk .
@@ -158,22 +170,23 @@ docker compose up -d
 ```
 
 ### Modifying Configuration
+
 1. Edit files in `Volume/` directory
 2. Restart containers: `docker compose restart`
 3. Changes persist across updates
 
 ## 🌐 Access
 
-- **Primary Interface**: http://localhost:3000/@signalk/freeboard-sk/?zoom=12&northup=1&movemap=1&kiosk=1
-- **Signal K API**: http://localhost:3000/signalk/
-- **Admin Panel**: http://localhost:3000/admin/
-- **Freeboard-SK Kiosk Mode**: http://localhost:3000/@signalk/freeboard-sk/?zoom=12&northup=1&movemap=1&kiosk=1
+- **Primary Interface**: <http://localhost:3000/@signalk/freeboard-sk/?zoom=12&northup=1&movemap=1&kiosk=1>
+- **Signal K API**: <http://localhost:3000/signalk/>
+- **Admin Panel**: <http://localhost:3000/admin/>
+- **Freeboard-SK Kiosk Mode**: <http://localhost:3000/@signalk/freeboard-sk/?zoom=12&northup=1&movemap=1&kiosk=1>
 
 ## 📞 Support
 
-- **Repository**: https://github.com/morrisUCA/gps-kiosk
-- **Signal K Documentation**: https://signalk.org/
-- **Freeboard Documentation**: https://github.com/SignalK/freeboard-sk
+- **Repository**: <https://github.com/morrisUCA/gps-kiosk>
+- **Signal K Documentation**: <https://signalk.org/>
+- **Freeboard Documentation**: <https://github.com/SignalK/freeboard-sk>
 
 ## 📄 License
 

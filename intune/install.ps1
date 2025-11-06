@@ -24,8 +24,7 @@ if (-not (Test-Path $dockerPath)) {
                 $installSuccess = $true
                 Write-Host "Docker Desktop installed via winget."
             }
-        }
-        catch {
+        } catch {
             Write-Host "Winget installation failed: $($_.Exception.Message)"
         }
         
@@ -72,8 +71,7 @@ if (-not (Test-Path $dockerPath)) {
             Write-Host "Docker Desktop installation failed or timed out. Exiting."
             exit 1
         }
-    }
-    catch {
+    } catch {
         Write-Host "Failed to install Docker Desktop: $($_.Exception.Message)"
         exit 1
     }
@@ -95,8 +93,7 @@ if (-not $dockerProcess) {
             docker version | Out-Null
             $dockerReady = $true
             break
-        }
-        catch {
+        } catch {
             $dockerReady = $false
         }
     } while ($elapsed -lt $timeout -and -not $dockerReady)
@@ -107,8 +104,7 @@ if (-not $dockerProcess) {
     }
     
     Write-Host "Docker Desktop is ready."
-}
-else {
+} else {
     Write-Host "Docker Desktop is already running."
 }
 
@@ -136,8 +132,7 @@ if (Test-Path $repoPath) {
     cd $repoPath
     git reset --hard
     git pull
-}
-else {
+} else {
     git clone $repoURL $repoPath
     cd $repoPath
 }
@@ -168,8 +163,7 @@ do {
             Write-Host "Application is ready!"
             break
         }
-    }
-    catch {
+    } catch {
         # Application not ready yet, continue waiting
     }
 } while ($attempt -lt $maxAttempts)
