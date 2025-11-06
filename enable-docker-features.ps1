@@ -29,8 +29,8 @@ try {
     $hyperV = Get-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V -ErrorAction Stop
     $containers = Get-WindowsOptionalFeature -Online -FeatureName Containers -ErrorAction Stop
     
-    Write-Host "Hyper-V Status: $($hyperV.State)" -ForegroundColor $(if($hyperV.State -eq "Enabled") {"Green"} else {"Red"})
-    Write-Host "Containers Status: $($containers.State)" -ForegroundColor $(if($containers.State -eq "Enabled") {"Green"} else {"Red"})
+    Write-Host "Hyper-V Status: $($hyperV.State)" -ForegroundColor $(if ($hyperV.State -eq "Enabled") { "Green" } else { "Red" })
+    Write-Host "Containers Status: $($containers.State)" -ForegroundColor $(if ($containers.State -eq "Enabled") { "Green" } else { "Red" })
     Write-Host ""
     
     $needsHyperV = $hyperV.State -ne "Enabled"
