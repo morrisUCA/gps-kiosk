@@ -12,15 +12,54 @@ Write-Host "=== GPS Kiosk Anonymous Download Setup ===" -ForegroundColor Green
 
 # Check if Docker is installed and running
 Write-Host "Checking Docker..." -ForegroundColor Yellow
-try {
-    docker version | Out-Null
-    Write-Host "Docker is available." -ForegroundColor Green
-}
-catch {
-    Write-Host "Docker is not available. Please install Docker Desktop first." -ForegroundColor Red
-    Write-Host "Download from: https://www.docker.com/products/docker-desktop/"
+$dockerPath = "C:\Program Files\Docker\Docker\Docker Desktop.exe"
+
+if (-not (Test-Path $dockerPath)) {
+    Write-Host "Docker Desktop not found. Please install Docker Desktop first." -ForegroundColor Red
+    Write-Host "Download from: https://www.docker.com/products/docker-desktop/" -ForegroundColor Yellow
     exit 1
 }
+
+# Ensure Docker Desktop is running
+$dockerProcess = Get-Process -Name "Docker Desktop" -ErrorAction SilentlyContinue
+if (-not $dockerProcess) {
+    Write-Host "Starting Docker Desktop..." -ForegroundColor Yellow
+    Start-Process $dockerPath -ErrorAction SilentlyContinue
+    
+    # Wait for Docker Desktop to start
+    $timeout = 180 # 3 minutes
+    $elapsed = 0
+    do {
+        Start-Sleep -Seconds 5
+        $elapsed += 5
+        $dockerProcess = Get-Process -Name "Docker Desktop" -ErrorAction SilentlyContinue
+    } while (-not $dockerProcess -and $elapsed -lt $timeout)
+    
+    if (-not $dockerProcess) {
+        Write-Host "Failed to start Docker Desktop. Please start it manually." -ForegroundColor Red
+        exit 1
+    }
+}
+
+# Wait for Docker daemon to be ready
+Write-Host "Waiting for Docker daemon..." -ForegroundColor Yellow
+$timeout = 300 # 5 minutes
+$elapsed = 0
+do {
+    Start-Sleep -Seconds 5
+    $elapsed += 5
+    try {
+        docker version | Out-Null
+        Write-Host "Docker is ready." -ForegroundColor Green
+        break
+    }
+    catch {
+        if ($elapsed -ge $timeout) {
+            Write-Host "Docker daemon timeout. Please check Docker Desktop status." -ForegroundColor Red
+            exit 1
+        }
+    }
+} while ($elapsed -lt $timeout)
 
 # Clean up temp directory if it exists
 if (Test-Path $TempPath) {
@@ -95,15 +134,36 @@ Set-Location $InstallPath
 
 # Stop any existing containers
 Write-Host "Stopping existing containers..." -ForegroundColor Yellow
-docker compose down 2>$null
+try {
+    docker compose down 2>$null
+    Write-Host "Existing containers stopped." -ForegroundColor Green
+}
+catch {
+    Write-Host "No existing containers to stop or error occurred." -ForegroundColor Yellow
+}
 
 # Pull latest images
 Write-Host "Pulling latest Docker images..." -ForegroundColor Yellow
-docker compose pull
+try {
+    docker compose pull
+    Write-Host "Docker images pulled successfully." -ForegroundColor Green
+}
+catch {
+    Write-Host "Warning: Failed to pull images: $($_.Exception.Message)" -ForegroundColor Yellow
+    Write-Host "Continuing with existing images..." -ForegroundColor Yellow
+}
 
 # Start containers
 Write-Host "Starting GPS Kiosk containers..." -ForegroundColor Yellow
-docker compose up -d
+try {
+    docker compose up -d
+    Write-Host "Containers started successfully." -ForegroundColor Green
+}
+catch {
+    Write-Host "Failed to start containers: $($_.Exception.Message)" -ForegroundColor Red
+    Write-Host "Please check Docker Desktop is running and try again." -ForegroundColor Yellow
+    exit 1
+}
 
 # Wait for application to be ready
 Write-Host "Waiting for application to start..." -ForegroundColor Yellow

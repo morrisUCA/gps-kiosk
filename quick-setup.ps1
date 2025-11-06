@@ -52,38 +52,82 @@ function Install-DockerDesktop {
     return $false
 }
 
+# Function to ensure Docker Desktop is running
+function Start-DockerDesktop {
+    $dockerPath = "C:\Program Files\Docker\Docker\Docker Desktop.exe"
+    
+    if (-not (Test-Path $dockerPath)) {
+        return $false
+    }
+    
+    # Check if Docker Desktop is already running
+    $dockerProcess = Get-Process -Name "Docker Desktop" -ErrorAction SilentlyContinue
+    if (-not $dockerProcess) {
+        Write-Host "Starting Docker Desktop..." -ForegroundColor Yellow
+        Start-Process $dockerPath -ErrorAction SilentlyContinue
+        
+        # Wait for Docker Desktop to start
+        $timeout = 180 # 3 minutes
+        $elapsed = 0
+        do {
+            Start-Sleep -Seconds 5
+            $elapsed += 5
+            $dockerProcess = Get-Process -Name "Docker Desktop" -ErrorAction SilentlyContinue
+        } while (-not $dockerProcess -and $elapsed -lt $timeout)
+        
+        if (-not $dockerProcess) {
+            Write-Host "Failed to start Docker Desktop process." -ForegroundColor Red
+            return $false
+        }
+    }
+    
+    # Wait for Docker daemon to be ready
+    Write-Host "Waiting for Docker daemon to be ready..." -ForegroundColor Yellow
+    $timeout = 300 # 5 minutes
+    $elapsed = 0
+    do {
+        Start-Sleep -Seconds 5
+        $elapsed += 5
+        try {
+            docker version | Out-Null
+            Write-Host "Docker daemon is ready." -ForegroundColor Green
+            return $true
+        }
+        catch {
+            # Docker daemon not ready yet
+        }
+    } while ($elapsed -lt $timeout)
+    
+    Write-Host "Docker daemon failed to become ready within timeout." -ForegroundColor Red
+    return $false
+}
+
 # Check and install Docker if needed
 Write-Host "Checking Docker..." -ForegroundColor Yellow
-try {
-    docker version | Out-Null
-    Write-Host "Docker is available." -ForegroundColor Green
-}
-catch {
+$dockerPath = "C:\Program Files\Docker\Docker\Docker Desktop.exe"
+
+if (-not (Test-Path $dockerPath)) {
+    Write-Host "Docker Desktop not found. Installing..." -ForegroundColor Yellow
     if (-not (Install-DockerDesktop)) {
         Write-Host "Failed to install Docker Desktop. Please install manually." -ForegroundColor Red
         Write-Host "Download from: https://www.docker.com/products/docker-desktop/"
         exit 1
     }
-    
-    # Wait for Docker to be available after installation
-    Write-Host "Waiting for Docker to be ready..." -ForegroundColor Yellow
-    $timeout = 300 # 5 minutes
-    $elapsed = 0
-    do {
-        Start-Sleep -Seconds 10
-        $elapsed += 10
-        try {
-            docker version | Out-Null
-            Write-Host "Docker is now ready." -ForegroundColor Green
-            break
-        }
-        catch {
-            if ($elapsed -ge $timeout) {
-                Write-Host "Docker installation timeout. Please restart and try again." -ForegroundColor Red
-                exit 1
-            }
-        }
-    } while ($elapsed -lt $timeout)
+}
+
+# Ensure Docker Desktop is running and daemon is ready
+if (-not (Start-DockerDesktop)) {
+    Write-Host "Failed to start Docker Desktop or daemon is not responding." -ForegroundColor Red
+    Write-Host "Please:" -ForegroundColor Yellow
+    Write-Host "1. Manually start Docker Desktop" -ForegroundColor White
+    Write-Host "2. Wait for it to fully start (whale icon in system tray)" -ForegroundColor White
+    Write-Host "3. Run this script again" -ForegroundColor White
+    Write-Host ""
+    Write-Host "If Docker Desktop won't start:" -ForegroundColor Yellow
+    Write-Host "- Try running as Administrator" -ForegroundColor White
+    Write-Host "- Check Windows features: Hyper-V and Containers" -ForegroundColor White
+    Write-Host "- Restart your computer" -ForegroundColor White
+    exit 1
 }
 
 # Auto-install Git if needed
@@ -184,15 +228,36 @@ if (-not (Test-Path $volumePath)) {
 
 # Stop any existing containers to update safely
 Write-Host "Stopping existing containers..." -ForegroundColor Yellow
-docker compose down 2>$null
+try {
+    docker compose down 2>$null
+    Write-Host "Existing containers stopped." -ForegroundColor Green
+}
+catch {
+    Write-Host "No existing containers to stop or error occurred: $($_.Exception.Message)" -ForegroundColor Yellow
+}
 
 # Always pull latest Docker images from Docker Hub
 Write-Host "Pulling latest Docker images from Docker Hub..." -ForegroundColor Yellow
-docker compose pull
+try {
+    docker compose pull
+    Write-Host "Docker images pulled successfully." -ForegroundColor Green
+}
+catch {
+    Write-Host "Warning: Failed to pull images: $($_.Exception.Message)" -ForegroundColor Yellow
+    Write-Host "Continuing with existing images..." -ForegroundColor Yellow
+}
 
 # Start containers
 Write-Host "Starting GPS Kiosk containers..." -ForegroundColor Yellow
-docker compose up -d
+try {
+    docker compose up -d
+    Write-Host "Containers started successfully." -ForegroundColor Green
+}
+catch {
+    Write-Host "Failed to start containers: $($_.Exception.Message)" -ForegroundColor Red
+    Write-Host "Please check Docker Desktop is running and try again." -ForegroundColor Yellow
+    exit 1
+}
 
 # Wait for application to be ready
 Write-Host "Waiting for application to start..." -ForegroundColor Yellow
