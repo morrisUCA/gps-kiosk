@@ -164,9 +164,10 @@ docker compose up -d
 
 ## 🌐 Access
 
-- **Primary Interface**: http://localhost:3000
+- **Primary Interface**: http://localhost:3000/@signalk/freeboard-sk/?zoom=12&northup=1&movemap=1&kiosk=1
 - **Signal K API**: http://localhost:3000/signalk/
 - **Admin Panel**: http://localhost:3000/admin/
+- **Freeboard-SK Kiosk Mode**: http://localhost:3000/@signalk/freeboard-sk/?zoom=12&northup=1&movemap=1&kiosk=1
 
 ## 📞 Support
 

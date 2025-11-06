@@ -310,7 +310,7 @@ do {
     Start-Sleep -Seconds 2
     $attempt++
     try {
-        $response = Invoke-WebRequest -Uri "http://localhost:3000" -TimeoutSec 5 -ErrorAction Stop
+        $response = Invoke-WebRequest -Uri "http://localhost:3000/@signalk/freeboard-sk/" -TimeoutSec 5 -ErrorAction Stop
         if ($response.StatusCode -eq 200) {
             $appReady = $true
             Write-Host "Application is ready!" -ForegroundColor Green
@@ -365,14 +365,14 @@ timeout /t 15 /nobreak >nul
 
 REM Check if application is responding
 :APP_WAIT
-powershell -Command "try { `$response = Invoke-WebRequest -Uri 'http://localhost:3000' -TimeoutSec 5; if (`$response.StatusCode -eq 200) { exit 0 } else { exit 1 } } catch { exit 1 }" >nul 2>&1
+powershell -Command "try { `$response = Invoke-WebRequest -Uri 'http://localhost:3000/@signalk/freeboard-sk/' -TimeoutSec 5; if (`$response.StatusCode -eq 200) { exit 0 } else { exit 1 } } catch { exit 1 }" >nul 2>&1
 if %ERRORLEVEL% NEQ 0 (
     timeout /t 5 /nobreak >nul
     goto APP_WAIT
 )
 
 echo GPS Kiosk is ready! Launching browser...
-start msedge --kiosk http://localhost:3000 --edge-kiosk-type=fullscreen --no-first-run --user-data-dir=C:\KioskBrowser
+start msedge --kiosk "http://localhost:3000/@signalk/freeboard-sk/?zoom=12&northup=1&movemap=1&kiosk=1" --edge-kiosk-type=fullscreen --no-first-run --user-data-dir=C:\KioskBrowser
 
 echo GPS Kiosk startup complete.
 "@
@@ -430,7 +430,7 @@ Write-Host "  - Windows startup: $shortcutPath" -ForegroundColor White
 
 # Launch the application now
 Write-Host "Launching GPS Kiosk..." -ForegroundColor Green
-Start-Process "msedge.exe" "--kiosk http://localhost:3000 --edge-kiosk-type=fullscreen --no-first-run --user-data-dir=C:\KioskBrowser"
+Start-Process "msedge.exe" "--kiosk `"http://localhost:3000/@signalk/freeboard-sk/?zoom=12&northup=1&movemap=1&kiosk=1`" --edge-kiosk-type=fullscreen --no-first-run --user-data-dir=C:\KioskBrowser"
 
 Write-Host ""
 Write-Host "=== Auto-Setup Complete! ===" -ForegroundColor Green
@@ -440,7 +440,7 @@ Write-Host "  ✅ Auto-pull latest Docker images" -ForegroundColor White
 Write-Host "  ✅ Auto-update Volume config from GitHub" -ForegroundColor White
 Write-Host "  ✅ Auto-launch in kiosk mode" -ForegroundColor White
 Write-Host ""
-Write-Host "Application URL: http://localhost:3000" -ForegroundColor Cyan
+Write-Host "Application URL: http://localhost:3000/@signalk/freeboard-sk/?zoom=12&northup=1&movemap=1&kiosk=1" -ForegroundColor Cyan
 Write-Host "Installation Path: $InstallPath" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "Manual operations:" -ForegroundColor Yellow

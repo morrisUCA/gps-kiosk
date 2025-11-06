@@ -167,7 +167,7 @@ do {
     Start-Sleep -Seconds 2
     $attempt++
     try {
-        $response = Invoke-WebRequest -Uri "http://localhost:3000" -TimeoutSec 5 -ErrorAction Stop
+        $response = Invoke-WebRequest -Uri "http://localhost:3000/@signalk/freeboard-sk/" -TimeoutSec 5 -ErrorAction Stop
         if ($response.StatusCode -eq 200) {
             $appReady = $true
             Write-Host "Application is ready!" -ForegroundColor Green
@@ -189,7 +189,7 @@ $startupScript = @"
 cd /d "$InstallPath"
 docker compose up -d
 timeout /t 10 /nobreak >nul
-start msedge --kiosk http://localhost:3000 --edge-kiosk-type=fullscreen --no-first-run --user-data-dir=C:\KioskBrowser
+start msedge --kiosk "http://localhost:3000/@signalk/freeboard-sk/?zoom=12&northup=1&movemap=1&kiosk=1" --edge-kiosk-type=fullscreen --no-first-run --user-data-dir=C:\KioskBrowser
 "@
 
 $startupPath = "$InstallPath\start-gps-kiosk.bat"
@@ -210,12 +210,12 @@ Write-Host "Startup shortcut created at: $shortcutPath" -ForegroundColor Green
 
 # Launch the application now
 Write-Host "Launching GPS Kiosk..." -ForegroundColor Green
-Start-Process "msedge.exe" "--kiosk http://localhost:3000 --edge-kiosk-type=fullscreen --no-first-run --user-data-dir=C:\KioskBrowser"
+Start-Process "msedge.exe" "--kiosk `"http://localhost:3000/@signalk/freeboard-sk/?zoom=12&northup=1&movemap=1&kiosk=1`" --edge-kiosk-type=fullscreen --no-first-run --user-data-dir=C:\KioskBrowser"
 
 Write-Host ""
 Write-Host "=== Setup Complete! ===" -ForegroundColor Green
 Write-Host "GPS Kiosk is now running and will start automatically on boot." -ForegroundColor White
-Write-Host "Application URL: http://localhost:3000" -ForegroundColor White
+Write-Host "Application URL: http://localhost:3000/@signalk/freeboard-sk/?zoom=12&northup=1&movemap=1&kiosk=1" -ForegroundColor White
 Write-Host "Installation Path: $InstallPath" -ForegroundColor White
 Write-Host "Downloaded from: dev-morris branch" -ForegroundColor White
 Write-Host ""

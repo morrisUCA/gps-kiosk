@@ -5,7 +5,7 @@ $ErrorActionPreference = "Stop"
 # Variables
 $repoURL = "https://github.com/morrisUCA/gps-kiosk.git"
 $repoPath = "C:\gps-kiosk"
-$browserURL = "http://localhost:3000"
+$browserURL = "http://localhost:3000/@signalk/freeboard-sk/?zoom=12&northup=1&movemap=1&kiosk=1"
 
 # Check if Docker Desktop is installed, install if needed
 $dockerPath = "C:\Program Files\Docker\Docker\Docker Desktop.exe"
@@ -162,7 +162,7 @@ do {
     Start-Sleep -Seconds 2
     $attempt++
     try {
-        $response = Invoke-WebRequest -Uri $browserURL -TimeoutSec 5 -ErrorAction Stop
+        $response = Invoke-WebRequest -Uri "http://localhost:3000/@signalk/freeboard-sk/" -TimeoutSec 5 -ErrorAction Stop
         if ($response.StatusCode -eq 200) {
             $appReady = $true
             Write-Host "Application is ready!"
