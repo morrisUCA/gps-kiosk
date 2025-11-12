@@ -33,13 +33,13 @@ function Install-DockerDesktop {
         
         Invoke-WebRequest -Uri $dockerUrl -OutFile $dockerInstaller -UseBasicParsing
         
-        Write-Host "Installing Docker Desktop..." -ForegroundColor Yellow
-        $process = Start-Process -FilePath $dockerInstaller -ArgumentList "install --quiet --accept-license" -Wait -PassThru
+        Write-Host "Installing Docker Desktop with WSL 2 backend..." -ForegroundColor Yellow
+        $process = Start-Process -FilePath $dockerInstaller -ArgumentList "install --quiet --accept-license --backend=wsl-2" -Wait -PassThru
         
         Remove-Item $dockerInstaller -Force -ErrorAction SilentlyContinue
         
         if ($process.ExitCode -eq 0) {
-            Write-Host "Docker Desktop installed successfully." -ForegroundColor Green
+            Write-Host "Docker Desktop installed successfully with WSL 2 backend." -ForegroundColor Green
             return $true
         }
     } catch {
@@ -48,6 +48,33 @@ function Install-DockerDesktop {
     }
     
     return $false
+}
+
+# Function to configure Docker Desktop for WSL 2 backend
+function Configure-DockerWSL2 {
+    Write-Host "Configuring Docker Desktop for WSL 2 backend..." -ForegroundColor Yellow
+    
+    try {
+        # Docker Desktop settings file location
+        $dockerConfigPath = "$env:APPDATA\Docker\settings.json"
+        
+        if (Test-Path $dockerConfigPath) {
+            $config = Get-Content $dockerConfigPath | ConvertFrom-Json
+            
+            # Enable WSL 2 backend
+            $config | Add-Member -Name "wslEngineEnabled" -Value $true -MemberType NoteProperty -Force
+            $config | Add-Member -Name "useWindowsContainers" -Value $false -MemberType NoteProperty -Force
+            
+            # Save updated configuration
+            $config | ConvertTo-Json -Depth 10 | Set-Content $dockerConfigPath
+            Write-Host "Docker Desktop configured for WSL 2 backend." -ForegroundColor Green
+        } else {
+            Write-Host "Docker Desktop configuration file not found. Will use default WSL 2 settings." -ForegroundColor Yellow
+        }
+    } catch {
+        Write-Host "Could not configure Docker Desktop settings: $($_.Exception.Message)" -ForegroundColor Yellow
+        Write-Host "Docker Desktop will use default settings." -ForegroundColor White
+    }
 }
 
 # Function to ensure Docker Desktop is running
@@ -125,6 +152,9 @@ if (-not (Test-Path $dockerPath)) {
         Write-Host "Download from: https://www.docker.com/products/docker-desktop/"
         exit 1
     }
+    
+    # Configure Docker Desktop for WSL 2 backend
+    Configure-DockerWSL2
 }
 
 # Ensure Docker Desktop is running and daemon is ready
@@ -137,7 +167,8 @@ if (-not (Start-DockerDesktop)) {
     Write-Host ""
     Write-Host "If Docker Desktop won't start:" -ForegroundColor Yellow
     Write-Host "- Try running as Administrator" -ForegroundColor White
-    Write-Host "- Check Windows features: Hyper-V and Containers" -ForegroundColor White
+    Write-Host "- Check Windows features: WSL and Virtual Machine Platform" -ForegroundColor White
+    Write-Host "- Run: .\enable-docker-features.ps1" -ForegroundColor White
     Write-Host "- Restart your computer" -ForegroundColor White
     exit 1
 }
@@ -504,6 +535,11 @@ Write-Host "  ✅ Auto-start on every boot" -ForegroundColor White
 Write-Host "  ✅ Auto-pull latest Docker images" -ForegroundColor White
 Write-Host "  ✅ Auto-update Volume config from GitHub" -ForegroundColor White
 Write-Host "  ✅ Auto-launch in kiosk mode" -ForegroundColor White
+if ($configureAutoLogin -like "y*" -and $isAdmin) {
+    Write-Host "  ✅ Auto-login configured (unattended operation)" -ForegroundColor White
+} else {
+    Write-Host "  ⏸️  Manual login required (configure auto-login for unattended operation)" -ForegroundColor Yellow
+}
 Write-Host ""
 Write-Host "Application URL: http://localhost:3000/@signalk/freeboard-sk/?zoom=12&northup=1&movemap=1&kiosk=1" -ForegroundColor Cyan
 Write-Host "Installation Path: $InstallPath" -ForegroundColor Cyan

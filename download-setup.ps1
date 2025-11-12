@@ -10,6 +10,40 @@ $ErrorActionPreference = "Stop"
 
 Write-Host "=== GPS Kiosk Anonymous Download Setup ===" -ForegroundColor Green
 
+# Configure Docker Desktop for WSL 2 backend
+function Configure-DockerWSL2 {
+    Write-Host "Configuring Docker Desktop for WSL 2 backend..." -ForegroundColor Yellow
+    
+    # Check if WSL 2 is available
+    try {
+        $wslVersion = wsl --status 2>$null
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "WSL is not available. Installing WSL 2..." -ForegroundColor Yellow
+            wsl --install --no-distribution
+            Write-Host "WSL 2 installed. Please restart your computer and run this script again." -ForegroundColor Yellow
+            Read-Host "Press Enter to exit"
+            exit 1
+        }
+    } catch {
+        Write-Host "WSL commands not available. Please ensure WSL is properly installed." -ForegroundColor Yellow
+    }
+    
+    # Set Docker Desktop to use WSL 2 backend
+    $dockerConfigPath = "$env:APPDATA\Docker\settings.json"
+    if (Test-Path $dockerConfigPath) {
+        try {
+            $config = Get-Content $dockerConfigPath | ConvertFrom-Json
+            $config.useWindowsContainers = $false
+            $config.wslEngineEnabled = $true
+            $config | ConvertTo-Json -Depth 10 | Set-Content $dockerConfigPath
+            Write-Host "Docker Desktop configured for WSL 2 backend." -ForegroundColor Green
+        } catch {
+            Write-Host "Note: Could not automatically configure Docker Desktop settings." -ForegroundColor Yellow
+            Write-Host "Please ensure WSL 2 backend is enabled in Docker Desktop settings." -ForegroundColor Yellow
+        }
+    }
+}
+
 # Check if Docker is installed and running
 Write-Host "Checking Docker..." -ForegroundColor Yellow
 $dockerPath = "C:\Program Files\Docker\Docker\Docker Desktop.exe"
@@ -17,8 +51,12 @@ $dockerPath = "C:\Program Files\Docker\Docker\Docker Desktop.exe"
 if (-not (Test-Path $dockerPath)) {
     Write-Host "Docker Desktop not found. Please install Docker Desktop first." -ForegroundColor Red
     Write-Host "Download from: https://www.docker.com/products/docker-desktop/" -ForegroundColor Yellow
+    Write-Host "Make sure to enable WSL 2 backend during installation." -ForegroundColor Yellow
     exit 1
 }
+
+# Configure Docker for WSL 2 backend
+Configure-DockerWSL2
 
 # Ensure Docker Desktop is running
 $dockerProcess = Get-Process -Name "Docker Desktop" -ErrorAction SilentlyContinue
@@ -208,6 +246,71 @@ $Shortcut.Save()
 
 Write-Host "Startup shortcut created at: $shortcutPath" -ForegroundColor Green
 
+# Configure kiosk auto-login (optional)
+Write-Host ""
+Write-Host "=== Kiosk Auto-Login Configuration ===" -ForegroundColor Yellow
+Write-Host "For unattended operation, you can configure automatic login." -ForegroundColor White
+Write-Host "This is optional but recommended for dedicated GPS displays." -ForegroundColor White
+Write-Host ""
+
+$configureAutoLogin = Read-Host "Configure auto-login for kiosk mode? (y/N)"
+if ($configureAutoLogin -like "y*") {
+    $username = Read-Host "Enter Windows username for auto-login"
+    $password = Read-Host "Enter password for $username" -AsSecureString
+    $plainPassword = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($password))
+    
+    Write-Host "Configuring auto-login and kiosk settings..." -ForegroundColor Yellow
+    
+    try {
+        # Check if running as Administrator
+        $currentUser = [System.Security.Principal.WindowsIdentity]::GetCurrent()
+        $principal = New-Object System.Security.Principal.WindowsPrincipal($currentUser)
+        $isAdmin = $principal.IsInRole([System.Security.Principal.WindowsBuiltInRole]::Administrator)
+        
+        if ($isAdmin) {
+            # Configure auto-login registry entries
+            $winlogonPath = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon"
+            Set-ItemProperty -Path $winlogonPath -Name "AutoAdminLogon" -Value "1" -Type String
+            Set-ItemProperty -Path $winlogonPath -Name "DefaultUserName" -Value $username -Type String
+            Set-ItemProperty -Path $winlogonPath -Name "DefaultPassword" -Value $plainPassword -Type String
+            Set-ItemProperty -Path $winlogonPath -Name "AutoLogonCount" -Value 0 -Type DWord
+            
+            # Disable lock screen
+            $personalizationPath = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Personalization"
+            if (-not (Test-Path $personalizationPath)) {
+                New-Item -Path $personalizationPath -Force | Out-Null
+            }
+            Set-ItemProperty -Path $personalizationPath -Name "NoLockScreen" -Value 1 -Type DWord
+            
+            # Configure power settings for always-on display
+            Start-Process "powercfg" -ArgumentList "/change", "standby-timeout-ac", "0" -Wait -NoNewWindow
+            Start-Process "powercfg" -ArgumentList "/change", "monitor-timeout-ac", "0" -Wait -NoNewWindow
+            Start-Process "powercfg" -ArgumentList "/change", "hibernate-timeout-ac", "0" -Wait -NoNewWindow
+            
+            Write-Host "Auto-login configured successfully!" -ForegroundColor Green
+            Write-Host "  ✅ Auto-login enabled for: $username" -ForegroundColor White
+            Write-Host "  ✅ Lock screen disabled" -ForegroundColor White
+            Write-Host "  ✅ Display set to always-on" -ForegroundColor White
+            
+        } else {
+            Write-Host "WARNING: Not running as Administrator - auto-login not configured" -ForegroundColor Yellow
+            Write-Host "To enable auto-login later, run as Administrator:" -ForegroundColor White
+            Write-Host "  .\configure-auto-login.ps1 -Username '$username' -Password 'YourPassword'" -ForegroundColor Gray
+        }
+        
+    } catch {
+        Write-Host "Warning: Auto-login configuration failed: $($_.Exception.Message)" -ForegroundColor Yellow
+        Write-Host "You can configure it manually later with: .\configure-auto-login.ps1" -ForegroundColor White
+    }
+    
+    # Clear password from memory
+    $plainPassword = $null
+} else {
+    Write-Host "Auto-login skipped. You can configure it later with:" -ForegroundColor White
+    Write-Host "  .\configure-auto-login.ps1 -Username 'YourUsername' -Password 'YourPassword'" -ForegroundColor Gray
+}
+
+Write-Host ""
 # Launch the application now
 Write-Host "Launching GPS Kiosk..." -ForegroundColor Green
 Start-Process "msedge.exe" "--kiosk `"http://localhost:3000/@signalk/freeboard-sk/?zoom=12&northup=1&movemap=1&kiosk=1`" --edge-kiosk-type=fullscreen --no-first-run --user-data-dir=C:\KioskBrowser"
@@ -215,6 +318,11 @@ Start-Process "msedge.exe" "--kiosk `"http://localhost:3000/@signalk/freeboard-s
 Write-Host ""
 Write-Host "=== Setup Complete! ===" -ForegroundColor Green
 Write-Host "GPS Kiosk is now running and will start automatically on boot." -ForegroundColor White
+if ($configureAutoLogin -like "y*" -and $isAdmin) {
+    Write-Host "  ✅ Auto-login configured (unattended operation)" -ForegroundColor White
+} else {
+    Write-Host "  ⏸️  Manual login required (configure auto-login for unattended operation)" -ForegroundColor Yellow
+}
 Write-Host "Application URL: http://localhost:3000/@signalk/freeboard-sk/?zoom=12&northup=1&movemap=1&kiosk=1" -ForegroundColor White
 Write-Host "Installation Path: $InstallPath" -ForegroundColor White
 Write-Host "Downloaded from: dev-morris branch" -ForegroundColor White

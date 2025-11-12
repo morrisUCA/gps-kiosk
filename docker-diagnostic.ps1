@@ -66,24 +66,31 @@ try {
     $issues += "Docker Compose is not working"
 }
 
-# Check 5: Windows Features (Hyper-V, Containers)
+# Check 5: Windows Features (WSL, Virtual Machine Platform, Containers)
 Write-Host "5. Checking Windows features..." -ForegroundColor Yellow
 try {
-    $hyperV = Get-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V -ErrorAction SilentlyContinue
+    $wsl = Get-WindowsOptionalFeature -Online -FeatureName Microsoft-Windows-Subsystem-Linux -ErrorAction SilentlyContinue
+    $vmPlatform = Get-WindowsOptionalFeature -Online -FeatureName VirtualMachinePlatform -ErrorAction SilentlyContinue
     $containers = Get-WindowsOptionalFeature -Online -FeatureName Containers -ErrorAction SilentlyContinue
     
-    if ($hyperV.State -eq "Enabled") {
-        Write-Host "   [OK] Hyper-V is enabled" -ForegroundColor Green
+    if ($wsl.State -eq "Enabled") {
+        Write-Host "   [OK] WSL is enabled" -ForegroundColor Green
     } else {
-        Write-Host "   [WARNING] Hyper-V is not enabled" -ForegroundColor Yellow
-        $issues += "Hyper-V feature may need to be enabled"
+        Write-Host "   [WARNING] WSL is not enabled" -ForegroundColor Yellow
+        $issues += "WSL feature needs to be enabled for Docker Desktop"
+    }
+    
+    if ($vmPlatform.State -eq "Enabled") {
+        Write-Host "   [OK] Virtual Machine Platform is enabled" -ForegroundColor Green
+    } else {
+        Write-Host "   [WARNING] Virtual Machine Platform is not enabled" -ForegroundColor Yellow
+        $issues += "Virtual Machine Platform needs to be enabled for Docker Desktop"
     }
     
     if ($containers.State -eq "Enabled") {
         Write-Host "   [OK] Containers feature is enabled" -ForegroundColor Green
     } else {
-        Write-Host "   [WARNING] Containers feature is not enabled" -ForegroundColor Yellow
-        $issues += "Containers feature may need to be enabled"
+        Write-Host "   [INFO] Containers feature is not enabled (optional for Linux containers)" -ForegroundColor Cyan
     }
 } catch {
     Write-Host "   [WARNING] Could not check Windows features" -ForegroundColor Yellow
@@ -141,12 +148,13 @@ if ($issues.Count -eq 0) {
         Write-Host "   * Try running as Administrator" -ForegroundColor White
     }
     
-    if ($issues -like "*Hyper-V*" -or $issues -like "*Containers*") {
-        Write-Host "[FEATURES] Enable Windows Features:" -ForegroundColor Cyan
+    if ($issues -like "*WSL*" -or $issues -like "*Virtual Machine Platform*") {
+        Write-Host "[FEATURES] Enable Windows Features for Docker Desktop WSL 2:" -ForegroundColor Cyan
         Write-Host "   Run as Administrator:" -ForegroundColor White
-        Write-Host "   Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V -All" -ForegroundColor Gray
-        Write-Host "   Enable-WindowsOptionalFeature -Online -FeatureName Containers -All" -ForegroundColor Gray
+        Write-Host "   Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Windows-Subsystem-Linux" -ForegroundColor Gray
+        Write-Host "   Enable-WindowsOptionalFeature -Online -FeatureName VirtualMachinePlatform" -ForegroundColor Gray
         Write-Host "   Then restart your computer" -ForegroundColor White
+        Write-Host "   Docker Desktop will automatically use WSL 2 backend" -ForegroundColor White
     }
 }
 

@@ -2,10 +2,10 @@
 # This script configures Windows for unattended GPS Kiosk operation
 
 param(
-    [Parameter(Mandatory=$true)]
+    [Parameter(Mandatory = $true)]
     [string]$Username,
     
-    [Parameter(Mandatory=$true)]
+    [Parameter(Mandatory = $true)]
     [string]$Password,
     
     [switch]$DisableUpdates,
