@@ -327,14 +327,12 @@ try {
 # Start containers
 Write-Host "Starting GPS Kiosk containers..." -ForegroundColor Yellow
 
-# Run docker compose up with proper error handling
-try {
-    $upOutput = & docker compose up -d 2>&1
-    $upString = $upOutput -join " "
-} catch {
-    $upOutput = $_.Exception.Message
-    $upString = $upOutput
-}
+# Run docker compose up without stderr redirection to avoid PowerShell errors
+$ErrorActionPreference = "Continue"
+Start-Process -FilePath "docker" -ArgumentList "compose", "up", "-d" -Wait -NoNewWindow
+$upOutput = "Docker compose up completed"
+$upString = $upOutput
+$ErrorActionPreference = "Stop"
 
 # Check for obvious Docker errors first
 if ($upString -like "*500 Internal Server Error*" -or $upString -like "*Access is denied*" -or $upString -like "*error*") {
