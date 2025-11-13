@@ -1,0 +1,163 @@
+# Docker Diagnostic Script for GPS Kiosk
+# Run this script to diagnose Docker Desktop issues
+
+param(
+    [switch]$Fix
+)
+
+Write-Host "=== GPS Kiosk Docker Diagnostic ===" -ForegroundColor Green
+Write-Host ""
+
+$dockerPath = "C:\Program Files\Docker\Docker\Docker Desktop.exe"
+$issues = @()
+
+# Check 1: Docker Desktop Installation
+Write-Host "1. Checking Docker Desktop installation..." -ForegroundColor Yellow
+if (Test-Path $dockerPath) {
+    Write-Host "   [OK] Docker Desktop is installed" -ForegroundColor Green
+} else {
+    Write-Host "   [ERROR] Docker Desktop not found" -ForegroundColor Red
+    $issues += "Docker Desktop is not installed"
+}
+
+# Check 2: Docker Desktop Process
+Write-Host "2. Checking Docker Desktop process..." -ForegroundColor Yellow
+$dockerProcess = Get-Process -Name "Docker Desktop" -ErrorAction SilentlyContinue
+if ($dockerProcess) {
+    Write-Host "   [OK] Docker Desktop process is running" -ForegroundColor Green
+} else {
+    Write-Host "   [ERROR] Docker Desktop process not found" -ForegroundColor Red
+    $issues += "Docker Desktop is not running"
+    
+    if ($Fix -and (Test-Path $dockerPath)) {
+        Write-Host "   [FIX] Starting Docker Desktop..." -ForegroundColor Cyan
+        Start-Process $dockerPath
+        Start-Sleep -Seconds 10
+    }
+}
+
+# Check 3: Docker Daemon
+Write-Host "3. Checking Docker daemon..." -ForegroundColor Yellow
+try {
+    $version = docker version --format "{{.Server.Version}}" 2>$null
+    if ($version) {
+        Write-Host "   [OK] Docker daemon is responding (version: $version)" -ForegroundColor Green
+    } else {
+        throw "No version returned"
+    }
+} catch {
+    Write-Host "   [ERROR] Docker daemon is not responding" -ForegroundColor Red
+    Write-Host "   Error: $($_.Exception.Message)" -ForegroundColor Red
+    $issues += "Docker daemon is not accessible"
+}
+
+# Check 4: Docker Compose
+Write-Host "4. Checking Docker Compose..." -ForegroundColor Yellow
+try {
+    $composeVersion = docker compose version --short 2>$null
+    if ($composeVersion) {
+        Write-Host "   [OK] Docker Compose is available (version: $composeVersion)" -ForegroundColor Green
+    } else {
+        throw "No compose version"
+    }
+} catch {
+    Write-Host "   [ERROR] Docker Compose is not available" -ForegroundColor Red
+    Write-Host "   Error: $($_.Exception.Message)" -ForegroundColor Red
+    $issues += "Docker Compose is not working"
+}
+
+# Check 5: Windows Features (WSL, Virtual Machine Platform, Containers)
+Write-Host "5. Checking Windows features..." -ForegroundColor Yellow
+try {
+    $wsl = Get-WindowsOptionalFeature -Online -FeatureName Microsoft-Windows-Subsystem-Linux -ErrorAction SilentlyContinue
+    $vmPlatform = Get-WindowsOptionalFeature -Online -FeatureName VirtualMachinePlatform -ErrorAction SilentlyContinue
+    $containers = Get-WindowsOptionalFeature -Online -FeatureName Containers -ErrorAction SilentlyContinue
+    
+    if ($wsl.State -eq "Enabled") {
+        Write-Host "   [OK] WSL is enabled" -ForegroundColor Green
+    } else {
+        Write-Host "   [WARNING] WSL is not enabled" -ForegroundColor Yellow
+        $issues += "WSL feature needs to be enabled for Docker Desktop"
+    }
+    
+    if ($vmPlatform.State -eq "Enabled") {
+        Write-Host "   [OK] Virtual Machine Platform is enabled" -ForegroundColor Green
+    } else {
+        Write-Host "   [WARNING] Virtual Machine Platform is not enabled" -ForegroundColor Yellow
+        $issues += "Virtual Machine Platform needs to be enabled for Docker Desktop"
+    }
+    
+    if ($containers.State -eq "Enabled") {
+        Write-Host "   [OK] Containers feature is enabled" -ForegroundColor Green
+    } else {
+        Write-Host "   [INFO] Containers feature is not enabled (optional for Linux containers)" -ForegroundColor Cyan
+    }
+} catch {
+    Write-Host "   [WARNING] Could not check Windows features" -ForegroundColor Yellow
+}
+
+# Check 6: User Permissions
+Write-Host "6. Checking user permissions..." -ForegroundColor Yellow
+$currentUser = [System.Security.Principal.WindowsIdentity]::GetCurrent()
+$principal = New-Object System.Security.Principal.WindowsPrincipal($currentUser)
+$isAdmin = $principal.IsInRole([System.Security.Principal.WindowsBuiltInRole]::Administrator)
+
+if ($isAdmin) {
+    Write-Host "   [OK] Running as Administrator" -ForegroundColor Green
+} else {
+    Write-Host "   [WARNING] Not running as Administrator" -ForegroundColor Yellow
+    Write-Host "   [INFO] Some Docker operations may require admin privileges" -ForegroundColor Cyan
+}
+
+# Summary
+Write-Host ""
+Write-Host "=== DIAGNOSTIC SUMMARY ===" -ForegroundColor Green
+if ($issues.Count -eq 0) {
+    Write-Host "[SUCCESS] All checks passed! Docker should be working properly." -ForegroundColor Green
+    Write-Host ""
+    Write-Host "If you're still having issues, try:" -ForegroundColor Yellow
+    Write-Host "* Restart Docker Desktop" -ForegroundColor White
+    Write-Host "* Restart your computer" -ForegroundColor White
+    Write-Host "* Check Docker Desktop settings" -ForegroundColor White
+} else {
+    Write-Host "[ISSUES] Found $($issues.Count) issue(s):" -ForegroundColor Red
+    foreach ($issue in $issues) {
+        Write-Host "   * $issue" -ForegroundColor White
+    }
+    
+    Write-Host ""
+    Write-Host "=== RECOMMENDED FIXES ===" -ForegroundColor Yellow
+    
+    if ($issues -contains "Docker Desktop is not installed") {
+        Write-Host "[INSTALL] Install Docker Desktop:" -ForegroundColor Cyan
+        Write-Host "   Download from: https://www.docker.com/products/docker-desktop/" -ForegroundColor White
+    }
+    
+    if ($issues -contains "Docker Desktop is not running") {
+        Write-Host "[START] Start Docker Desktop:" -ForegroundColor Cyan
+        Write-Host "   * Double-click Docker Desktop icon" -ForegroundColor White
+        Write-Host "   * Or run: Start-Process '$dockerPath'" -ForegroundColor White
+        Write-Host "   * Or run this script with -Fix parameter" -ForegroundColor White
+    }
+    
+    if ($issues -contains "Docker daemon is not accessible") {
+        Write-Host "[FIX] Fix Docker Daemon:" -ForegroundColor Cyan
+        Write-Host "   * Wait for Docker Desktop to fully start (whale icon in system tray)" -ForegroundColor White
+        Write-Host "   * Try restarting Docker Desktop" -ForegroundColor White
+        Write-Host "   * Check Windows Event Logs for Docker errors" -ForegroundColor White
+        Write-Host "   * Try running as Administrator" -ForegroundColor White
+    }
+    
+    if ($issues -like "*WSL*" -or $issues -like "*Virtual Machine Platform*") {
+        Write-Host "[FEATURES] Enable Windows Features for Docker Desktop WSL 2:" -ForegroundColor Cyan
+        Write-Host "   Run as Administrator:" -ForegroundColor White
+        Write-Host "   Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Windows-Subsystem-Linux" -ForegroundColor Gray
+        Write-Host "   Enable-WindowsOptionalFeature -Online -FeatureName VirtualMachinePlatform" -ForegroundColor Gray
+        Write-Host "   Then restart your computer" -ForegroundColor White
+        Write-Host "   Docker Desktop will automatically use WSL 2 backend" -ForegroundColor White
+    }
+}
+
+Write-Host ""
+Write-Host "[TIP] Run with -Fix parameter to attempt automatic fixes" -ForegroundColor Cyan
+Write-Host "   Example: .\docker-diagnostic.ps1 -Fix" -ForegroundColor Gray

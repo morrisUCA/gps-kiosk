@@ -5,16 +5,53 @@ $ErrorActionPreference = "Stop"
 # Variables
 $repoURL = "https://github.com/morrisUCA/gps-kiosk.git"
 $repoPath = "C:\gps-kiosk"
-$browserURL = "http://localhost:3000"
+$browserURL = "http://localhost:3000/@signalk/freeboard-sk/?zoom=12&northup=1&movemap=1&kiosk=1"
 
-# Check if Docker Desktop is installed, install from Microsoft Store if needed
+# Check if Docker Desktop is installed, install if needed
 $dockerPath = "C:\Program Files\Docker\Docker\Docker Desktop.exe"
 if (-not (Test-Path $dockerPath)) {
-    Write-Host "Docker Desktop not found. Installing from Microsoft Store..."
+    Write-Host "Docker Desktop not found. Installing..."
     
     try {
-        # Install Docker Desktop from Microsoft Store using winget
-        winget install --id Docker.DockerDesktop --source msstore --accept-package-agreements --accept-source-agreements --silent
+        # Try multiple installation methods
+        $installSuccess = $false
+        
+        # Method 1: Try winget from default source (not MS Store)
+        Write-Host "Attempting installation via winget..."
+        try {
+            $result = winget install Docker.DockerDesktop --accept-package-agreements --accept-source-agreements --silent
+            if ($LASTEXITCODE -eq 0) {
+                $installSuccess = $true
+                Write-Host "Docker Desktop installed via winget."
+            }
+        } catch {
+            Write-Host "Winget installation failed: $($_.Exception.Message)"
+        }
+        
+        # Method 2: Direct download and install if winget failed
+        if (-not $installSuccess) {
+            Write-Host "Downloading Docker Desktop directly..."
+            $dockerUrl = "https://desktop.docker.com/win/main/amd64/Docker%20Desktop%20Installer.exe"
+            $dockerInstaller = "$env:TEMP\DockerDesktopInstaller.exe"
+            
+            Invoke-WebRequest -Uri $dockerUrl -OutFile $dockerInstaller -UseBasicParsing
+            
+            Write-Host "Installing Docker Desktop..."
+            $process = Start-Process -FilePath $dockerInstaller -ArgumentList "install --quiet --accept-license" -Wait -PassThru
+            
+            if ($process.ExitCode -eq 0) {
+                $installSuccess = $true
+                Write-Host "Docker Desktop installed via direct download."
+            }
+            
+            # Clean up installer
+            Remove-Item $dockerInstaller -Force -ErrorAction SilentlyContinue
+        }
+        
+        if (-not $installSuccess) {
+            Write-Host "All Docker installation methods failed. Exiting."
+            exit 1
+        }
         
         # Wait for installation to complete
         Write-Host "Waiting for Docker Desktop installation to complete..."
@@ -34,9 +71,8 @@ if (-not (Test-Path $dockerPath)) {
             Write-Host "Docker Desktop installation failed or timed out. Exiting."
             exit 1
         }
-    }
-    catch {
-        Write-Host "Failed to install Docker Desktop from Microsoft Store: $($_.Exception.Message)"
+    } catch {
+        Write-Host "Failed to install Docker Desktop: $($_.Exception.Message)"
         exit 1
     }
 }
@@ -57,8 +93,7 @@ if (-not $dockerProcess) {
             docker version | Out-Null
             $dockerReady = $true
             break
-        }
-        catch {
+        } catch {
             $dockerReady = $false
         }
     } while ($elapsed -lt $timeout -and -not $dockerReady)
@@ -69,8 +104,7 @@ if (-not $dockerProcess) {
     }
     
     Write-Host "Docker Desktop is ready."
-}
-else {
+} else {
     Write-Host "Docker Desktop is already running."
 }
 
@@ -98,8 +132,7 @@ if (Test-Path $repoPath) {
     cd $repoPath
     git reset --hard
     git pull
-}
-else {
+} else {
     git clone $repoURL $repoPath
     cd $repoPath
 }
@@ -124,14 +157,13 @@ do {
     Start-Sleep -Seconds 2
     $attempt++
     try {
-        $response = Invoke-WebRequest -Uri $browserURL -TimeoutSec 5 -ErrorAction Stop
+        $response = Invoke-WebRequest -Uri "http://localhost:3000/@signalk/freeboard-sk/" -TimeoutSec 5 -ErrorAction Stop
         if ($response.StatusCode -eq 200) {
             $appReady = $true
             Write-Host "Application is ready!"
             break
         }
-    }
-    catch {
+    } catch {
         # Application not ready yet, continue waiting
     }
 } while ($attempt -lt $maxAttempts)
