@@ -134,18 +134,17 @@ Write-Host "Adding GPS Kiosk to Windows startup..." -ForegroundColor Yellow
 try {
     # Create the startup batch file if it doesn't exist
     $installPath = "C:\gps-kiosk"
-    $startupScript = @"
-@echo off
+    $startupScript = '@echo off
 REM GPS Kiosk Auto-Startup Script - Runs on every boot
 REM This ensures latest updates and launches the kiosk interface
 
 echo Starting GPS Kiosk Auto-Startup...
-cd /d "$installPath"
+cd /d "' + $installPath + '"
 
 REM Ensure Docker Desktop is running
 echo Checking Docker Desktop...
 docker version >nul 2>&1
-if %%ERRORLEVEL%% NEQ 0 (
+if %ERRORLEVEL% NEQ 0 (
     echo Starting Docker Desktop...
     start "" "C:\Program Files\Docker\Docker\Docker Desktop.exe"
     
@@ -153,7 +152,7 @@ if %%ERRORLEVEL%% NEQ 0 (
     :DOCKER_WAIT
     timeout /t 5 /nobreak >nul
     docker version >nul 2>&1
-    if %%ERRORLEVEL%% NEQ 0 goto DOCKER_WAIT
+    if %ERRORLEVEL% NEQ 0 goto DOCKER_WAIT
     echo Docker is ready.
 )
 
@@ -162,34 +161,33 @@ if exist .git (
     echo Updating GPS Kiosk to latest version...
     git reset --hard HEAD >nul 2>&1
     git pull >nul 2>&1
-)
+ + '
 
-REM Pull latest Docker images
-echo Pulling latest Docker images...
-docker compose pull >nul 2>&1
+    REM Pull latest Docker images
+    echo Pulling latest Docker images...
+    docker compose pull >nul 2>&1
 
-REM Stop and restart containers with latest images
-echo Starting GPS Kiosk containers...
-docker compose down >nul 2>&1
-docker compose up -d >nul 2>&1
+    REM Stop and restart containers with latest images
+    echo Starting GPS Kiosk containers...
+    docker compose down >nul 2>&1
+    docker compose up -d >nul 2>&1
 
-REM Wait for application to be ready
-echo Waiting for GPS Kiosk to start...
-timeout /t 15 /nobreak >nul
+    REM Wait for application to be ready
+    echo Waiting for GPS Kiosk to start...
+    timeout /t 15 /nobreak >nul
 
-REM Check if application is responding
-:APP_WAIT
-powershell -Command "try { `$response = Invoke-WebRequest -Uri 'http://localhost:3000/@signalk/freeboard-sk/' -TimeoutSec 5; if (`$response.StatusCode -eq 200) { exit 0 } else { exit 1 } } catch { exit 1 }" >nul 2>&1
-if %%ERRORLEVEL%% NEQ 0 (
-    timeout /t 5 /nobreak >nul
-    goto APP_WAIT
-)
+    REM Check if application is responding
+    :APP_WAIT
+    powershell -Command "try { $response = Invoke-WebRequest -Uri ''http://localhost:3000/@signalk/freeboard-sk/'' -TimeoutSec 5; if ($response.StatusCode -eq 200) { exit 0 } else { exit 1 } } catch { exit 1 }" >nul 2>&1
+    if %ERRORLEVEL% NEQ 0 (
+        timeout /t 5 /nobreak >nul
+        goto APP_WAIT
+    )
 
-echo GPS Kiosk is ready! Launching kiosk interface...
-start msedge --kiosk "http://localhost:3000/@signalk/freeboard-sk/?zoom=12&northup=1&movemap=1&kiosk=1" --edge-kiosk-type=fullscreen --no-first-run --user-data-dir=C:\KioskBrowser
+    echo GPS Kiosk is ready! Launching kiosk interface...
+    start msedge --kiosk "http://localhost:3000/@signalk/freeboard-sk/?zoom=12&northup=1&movemap=1&kiosk=1" --edge-kiosk-type=fullscreen --no-first-run --user-data-dir=C:\KioskBrowser
 
-echo GPS Kiosk startup complete.
-"@
+    echo GPS Kiosk startup complete.'
 
     $startupPath = "$installPath\start-gps-kiosk.bat"
     $startupScript | Out-File -FilePath $startupPath -Encoding ASCII
