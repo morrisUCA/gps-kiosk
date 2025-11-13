@@ -118,7 +118,7 @@ Charts are configured in the Freeboard interface:
 
 ```bash
 # Clone repository
-git clone https://github.com/morrisUCA/gps-kiosk.git
+git clone https://github.com/Uncruise/gps-kiosk.git
 cd gps-kiosk
 
 # Run setup
@@ -184,7 +184,7 @@ docker compose up -d
 
 ## 📞 Support
 
-- **Repository**: <https://github.com/morrisUCA/gps-kiosk>
+- **Repository**: <https://github.com/Uncruise/gps-kiosk>
 - **Signal K Documentation**: <https://signalk.org/>
 - **Freeboard Documentation**: <https://github.com/SignalK/freeboard-sk>
 

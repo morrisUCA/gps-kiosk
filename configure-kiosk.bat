@@ -45,6 +45,11 @@ if not exist "configure-auto-login.ps1" (
 )
 
 echo.
+echo === PowerShell Execution Policy Check ===
+echo Checking PowerShell execution policy...
+powershell -Command "Write-Host 'Current execution policy:' (Get-ExecutionPolicy -Scope CurrentUser) -ForegroundColor Yellow"
+
+echo.
 echo === Current Configuration Status ===
 powershell -ExecutionPolicy Bypass -Command "& '.\configure-auto-login.ps1' -ShowCurrent"
 
@@ -81,6 +86,10 @@ echo ==========================================
 echo.
 echo Configuring auto-login for: %USERNAME%
 echo.
+
+REM Configure PowerShell execution policy first
+echo Configuring PowerShell execution policy...
+powershell -ExecutionPolicy Bypass -Command "try { Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser -Force; Write-Host 'PowerShell execution policy updated' -ForegroundColor Green } catch { Write-Host 'Could not update execution policy - using bypass mode' -ForegroundColor Yellow }"
 
 REM Call PowerShell script with parameters
 powershell -ExecutionPolicy Bypass -Command "& '.\configure-auto-login.ps1' -Username '%USERNAME%' -Password '%PASSWORD%'"

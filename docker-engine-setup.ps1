@@ -39,7 +39,7 @@ Write-Host "2. After restart, run:" -ForegroundColor Yellow
 Write-Host "   - .\quick-setup.ps1" -ForegroundColor White
 Write-Host ""
 Write-Host "3. Or download and run manually:" -ForegroundColor Yellow
-Write-Host "   - Download repository: git clone https://github.com/morrisUCA/gps-kiosk.git" -ForegroundColor White
+Write-Host "   - Download repository: git clone https://github.com/Uncruise/gps-kiosk.git" -ForegroundColor White
 Write-Host "   - Run: docker compose up -d" -ForegroundColor White
 Write-Host "   - Open: http://localhost:3000/@signalk/freeboard-sk/?zoom=12&northup=1&movemap=1&kiosk=1" -ForegroundColor White
 Write-Host ""

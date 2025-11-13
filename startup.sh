@@ -3,8 +3,8 @@
 # GPS Kiosk Startup Script - Auto-pull Volume config from GitHub
 
 CONFIG_DIR="/home/node/.signalk"
-GITHUB_REPO="https://github.com/morrisUCA/gps-kiosk.git"
-BRANCH="dev-morris"
+GITHUB_REPO="https://github.com/Uncruise/gps-kiosk.git"
+BRANCH="main"
 
 echo "🚀 Starting GPS Kiosk..."
 echo "📁 Config directory: $CONFIG_DIR"

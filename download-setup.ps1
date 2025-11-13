@@ -10,6 +10,25 @@ $ErrorActionPreference = "Stop"
 
 Write-Host "=== GPS Kiosk Anonymous Download Setup ===" -ForegroundColor Green
 
+# Check and configure PowerShell execution policy
+Write-Host "Checking PowerShell execution policy..." -ForegroundColor Yellow
+$currentPolicy = Get-ExecutionPolicy -Scope CurrentUser
+if ($currentPolicy -eq "Restricted" -or $currentPolicy -eq "AllSigned") {
+    Write-Host "Current execution policy: $currentPolicy" -ForegroundColor Yellow
+    Write-Host "Configuring PowerShell to allow GPS Kiosk scripts..." -ForegroundColor Yellow
+    
+    try {
+        Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
+        Write-Host "✅ PowerShell execution policy updated to RemoteSigned" -ForegroundColor Green
+    } catch {
+        Write-Host "⚠️  Could not change execution policy automatically" -ForegroundColor Yellow
+        Write-Host "If you encounter script errors, run as Administrator:" -ForegroundColor White
+        Write-Host "  Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser" -ForegroundColor Gray
+    }
+} else {
+    Write-Host "✅ PowerShell execution policy: $currentPolicy (OK)" -ForegroundColor Green
+}
+
 # Configure Docker Desktop for WSL 2 backend
 function Configure-DockerWSL2 {
     Write-Host "Configuring Docker Desktop for WSL 2 backend..." -ForegroundColor Yellow
@@ -325,7 +344,7 @@ if ($configureAutoLogin -like "y*" -and $isAdmin) {
 }
 Write-Host "Application URL: http://localhost:3000/@signalk/freeboard-sk/?zoom=12&northup=1&movemap=1&kiosk=1" -ForegroundColor White
 Write-Host "Installation Path: $InstallPath" -ForegroundColor White
-Write-Host "Downloaded from: dev-morris branch" -ForegroundColor White
+Write-Host "Downloaded from: main branch" -ForegroundColor White
 Write-Host ""
 Write-Host "To manage the application:" -ForegroundColor Yellow
 Write-Host "  Start:  docker compose up -d" -ForegroundColor White

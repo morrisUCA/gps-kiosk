@@ -3,7 +3,7 @@
 $ErrorActionPreference = "Stop"
 
 # Variables
-$repoURL = "https://github.com/morrisUCA/gps-kiosk.git"
+$repoURL = "https://github.com/Uncruise/gps-kiosk.git"
 $repoPath = "C:\gps-kiosk"
 $browserURL = "http://localhost:3000/@signalk/freeboard-sk/?zoom=12&northup=1&movemap=1&kiosk=1"
 

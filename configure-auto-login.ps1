@@ -15,6 +15,18 @@ param(
 Write-Host "=== GPS Kiosk Auto-Login Configuration ===" -ForegroundColor Green
 Write-Host ""
 
+# Check and configure PowerShell execution policy
+$currentPolicy = Get-ExecutionPolicy -Scope CurrentUser
+if ($currentPolicy -eq "Restricted" -or $currentPolicy -eq "AllSigned") {
+    Write-Host "Configuring PowerShell execution policy..." -ForegroundColor Yellow
+    try {
+        Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
+        Write-Host "✅ PowerShell execution policy updated" -ForegroundColor Green
+    } catch {
+        Write-Host "⚠️  Could not change execution policy" -ForegroundColor Yellow
+    }
+}
+
 # Check if running as Administrator
 $currentUser = [System.Security.Principal.WindowsIdentity]::GetCurrent()
 $principal = New-Object System.Security.Principal.WindowsPrincipal($currentUser)
@@ -133,7 +145,7 @@ cd /d "$installPath"
 REM Ensure Docker Desktop is running
 echo Checking Docker Desktop...
 docker version >nul 2>&1
-if %ERRORLEVEL% NEQ 0 (
+if %%ERRORLEVEL%% NEQ 0 (
     echo Starting Docker Desktop...
     start "" "C:\Program Files\Docker\Docker\Docker Desktop.exe"
     
@@ -141,7 +153,7 @@ if %ERRORLEVEL% NEQ 0 (
     :DOCKER_WAIT
     timeout /t 5 /nobreak >nul
     docker version >nul 2>&1
-    if %ERRORLEVEL% NEQ 0 goto DOCKER_WAIT
+    if %%ERRORLEVEL%% NEQ 0 goto DOCKER_WAIT
     echo Docker is ready.
 )
 
@@ -168,7 +180,7 @@ timeout /t 15 /nobreak >nul
 REM Check if application is responding
 :APP_WAIT
 powershell -Command "try { `$response = Invoke-WebRequest -Uri 'http://localhost:3000/@signalk/freeboard-sk/' -TimeoutSec 5; if (`$response.StatusCode -eq 200) { exit 0 } else { exit 1 } } catch { exit 1 }" >nul 2>&1
-if %ERRORLEVEL% NEQ 0 (
+if %%ERRORLEVEL%% NEQ 0 (
     timeout /t 5 /nobreak >nul
     goto APP_WAIT
 )

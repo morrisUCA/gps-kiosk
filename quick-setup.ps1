@@ -9,6 +9,25 @@ $ErrorActionPreference = "Stop"
 
 Write-Host "=== GPS Kiosk Auto-Setup ===" -ForegroundColor Green
 
+# Check and configure PowerShell execution policy
+Write-Host "Checking PowerShell execution policy..." -ForegroundColor Yellow
+$currentPolicy = Get-ExecutionPolicy -Scope CurrentUser
+if ($currentPolicy -eq "Restricted" -or $currentPolicy -eq "AllSigned") {
+    Write-Host "Current execution policy: $currentPolicy" -ForegroundColor Yellow
+    Write-Host "Configuring PowerShell to allow GPS Kiosk scripts..." -ForegroundColor Yellow
+    
+    try {
+        Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
+        Write-Host "✅ PowerShell execution policy updated to RemoteSigned" -ForegroundColor Green
+    } catch {
+        Write-Host "⚠️  Could not change execution policy automatically" -ForegroundColor Yellow
+        Write-Host "If you encounter script errors, run as Administrator:" -ForegroundColor White
+        Write-Host "  Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser" -ForegroundColor Gray
+    }
+} else {
+    Write-Host "✅ PowerShell execution policy: $currentPolicy (OK)" -ForegroundColor Green
+}
+
 # Function to install Docker Desktop automatically
 function Install-DockerDesktop {
     Write-Host "Docker not found. Installing Docker Desktop..." -ForegroundColor Yellow
@@ -217,7 +236,7 @@ function Get-Repository {
     if (Get-Command git -ErrorAction SilentlyContinue) {
         Write-Host "Cloning repository via Git..." -ForegroundColor Yellow
         try {
-            git clone https://github.com/morrisUCA/gps-kiosk.git $Path
+            git clone https://github.com/Uncruise/gps-kiosk.git $Path
             Set-Location $Path
             Write-Host "Repository cloned via Git." -ForegroundColor Green
             return
@@ -309,25 +328,38 @@ try {
 Write-Host "Starting GPS Kiosk containers..." -ForegroundColor Yellow
 try {
     $upOutput = docker compose up -d 2>&1
-    $upString = $upOutput -join " "
     
-    if ($upString -like "*500 Internal Server Error*" -or $upString -like "*Access is denied*") {
-        throw "Docker API Error: $upString"
+    # Wait a moment for containers to initialize
+    Start-Sleep -Seconds 3
+    
+    # Check if container is actually running
+    $containerStatus = docker ps --filter "name=gps-kiosk" --format "{{.Status}}" 2>$null
+    
+    if ($containerStatus -and ($containerStatus -like "*Up*" -or $containerStatus -like "*healthy*")) {
+        Write-Host "✅ GPS Kiosk container is running: $containerStatus" -ForegroundColor Green
+    } else {
+        # Check for stopped container with error
+        $stoppedContainer = docker ps -a --filter "name=gps-kiosk" --format "{{.Status}}" 2>$null
+        if ($stoppedContainer -like "*Exited*") {
+            $containerLogs = docker logs gps-kiosk --tail 10 2>$null
+            throw "Container exited: $stoppedContainer. Logs: $containerLogs"
+        } else {
+            throw "Container not found or not starting properly"
+        }
     }
-    Write-Host "Containers started successfully." -ForegroundColor Green
 } catch {
     Write-Host "Failed to start containers: $($_.Exception.Message)" -ForegroundColor Red
-    if ($_.Exception.Message -like "*500 Internal Server Error*") {
-        Write-Host "ERROR: Docker daemon has internal errors. Cannot start containers." -ForegroundColor Red
-        Write-Host "This is caused by missing Windows features." -ForegroundColor Yellow
-        Write-Host ""
-        Write-Host "SOLUTION:" -ForegroundColor Cyan
-        Write-Host "1. Run as Administrator:" -ForegroundColor White
-        Write-Host "   Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V -All" -ForegroundColor Gray
-        Write-Host "   Enable-WindowsOptionalFeature -Online -FeatureName Containers -All" -ForegroundColor Gray
-        Write-Host "2. Restart the computer" -ForegroundColor White
-        Write-Host "3. Run this script again" -ForegroundColor White
-    }
+    Write-Host "Container output: $($upOutput -join ' ')" -ForegroundColor Yellow
+    
+    # Show diagnostic information
+    Write-Host "Diagnostic information:" -ForegroundColor Cyan
+    Write-Host "- Running: docker ps --filter name=gps-kiosk" -ForegroundColor White
+    docker ps --filter "name=gps-kiosk"
+    Write-Host "- All containers: docker ps -a --filter name=gps-kiosk" -ForegroundColor White  
+    docker ps -a --filter "name=gps-kiosk"
+    
+    Write-Host ""
+    Write-Host "For detailed diagnosis, run: powershell -ExecutionPolicy Bypass .\docker-diagnostic.ps1" -ForegroundColor Yellow
     exit 1
 }
 
