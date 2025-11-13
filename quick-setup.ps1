@@ -229,7 +229,7 @@ function Get-Repository {
     # Fallback: Direct download
     Write-Host "Downloading repository as ZIP..." -ForegroundColor Yellow
     $tempPath = "$env:TEMP\gps-kiosk-download"
-    $zipUrl = "https://github.com/morrisUCA/gps-kiosk/archive/refs/heads/dev-morris.zip"
+    $zipUrl = "https://github.com/Uncruise/gps-kiosk/archive/refs/heads/main.zip"
     $zipPath = "$tempPath\gps-kiosk.zip"
     
     if (Test-Path $tempPath) {
