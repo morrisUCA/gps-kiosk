@@ -326,42 +326,62 @@ try {
 
 # Start containers
 Write-Host "Starting GPS Kiosk containers..." -ForegroundColor Yellow
-try {
-    $upOutput = docker compose up -d 2>&1
-    
-    # Wait a moment for containers to initialize
-    Start-Sleep -Seconds 3
-    
-    # Check if container is actually running
-    $containerStatus = docker ps --filter "name=gps-kiosk" --format "{{.Status}}" 2>$null
-    
-    if ($containerStatus -and ($containerStatus -like "*Up*" -or $containerStatus -like "*healthy*")) {
-        Write-Host "✅ GPS Kiosk container is running: $containerStatus" -ForegroundColor Green
-    } else {
-        # Check for stopped container with error
-        $stoppedContainer = docker ps -a --filter "name=gps-kiosk" --format "{{.Status}}" 2>$null
-        if ($stoppedContainer -like "*Exited*") {
-            $containerLogs = docker logs gps-kiosk --tail 10 2>$null
-            throw "Container exited: $stoppedContainer. Logs: $containerLogs"
-        } else {
-            throw "Container not found or not starting properly"
-        }
-    }
-} catch {
-    Write-Host "Failed to start containers: $($_.Exception.Message)" -ForegroundColor Red
-    Write-Host "Container output: $($upOutput -join ' ')" -ForegroundColor Yellow
-    
-    # Show diagnostic information
-    Write-Host "Diagnostic information:" -ForegroundColor Cyan
-    Write-Host "- Running: docker ps --filter name=gps-kiosk" -ForegroundColor White
-    docker ps --filter "name=gps-kiosk"
-    Write-Host "- All containers: docker ps -a --filter name=gps-kiosk" -ForegroundColor White  
-    docker ps -a --filter "name=gps-kiosk"
-    
-    Write-Host ""
+
+# Run docker compose up and capture output for debugging
+$upOutput = docker compose up -d 2>&1
+$upString = $upOutput -join " "
+
+# Check for obvious Docker errors first
+if ($upString -like "*500 Internal Server Error*" -or $upString -like "*Access is denied*" -or $upString -like "*error*") {
+    Write-Host "Docker error detected: $upString" -ForegroundColor Red
     Write-Host "For detailed diagnosis, run: powershell -ExecutionPolicy Bypass .\docker-diagnostic.ps1" -ForegroundColor Yellow
     exit 1
 }
+
+# Wait a moment for containers to initialize
+Start-Sleep -Seconds 5
+
+# Check container status with improved detection
+$containerStatus = docker ps --filter "name=gps-kiosk" --format "{{.Status}}" 2>$null
+
+if ($containerStatus) {
+    if ($containerStatus -like "*Up*") {
+        Write-Host "✅ GPS Kiosk container is running: $containerStatus" -ForegroundColor Green
+    } else {
+        Write-Host "⚠️  Container found but status unclear: $containerStatus" -ForegroundColor Yellow
+        Write-Host "Checking if container is still starting..." -ForegroundColor Yellow
+        
+        # Give it more time if it's in a starting state
+        Start-Sleep -Seconds 5
+        $containerStatus = docker ps --filter "name=gps-kiosk" --format "{{.Status}}" 2>$null
+        
+        if ($containerStatus -like "*Up*") {
+            Write-Host "✅ Container is now running: $containerStatus" -ForegroundColor Green
+        } else {
+            Write-Host "⚠️  Container may not be healthy, but continuing with setup..." -ForegroundColor Yellow
+        }
+    }
+} else {
+    # Check for stopped/failed container
+    $allContainerStatus = docker ps -a --filter "name=gps-kiosk" --format "{{.Status}}" 2>$null
+    if ($allContainerStatus -like "*Exited*") {
+        Write-Host "❌ Container failed to start: $allContainerStatus" -ForegroundColor Red
+        $containerLogs = docker logs gps-kiosk --tail 10 2>$null
+        Write-Host "Container logs: $containerLogs" -ForegroundColor Yellow
+        Write-Host "For detailed diagnosis, run: powershell -ExecutionPolicy Bypass .\docker-diagnostic.ps1" -ForegroundColor Yellow
+        exit 1
+    } else {
+        Write-Host "⚠️  No container found, but continuing with setup..." -ForegroundColor Yellow
+        Write-Host "You may need to run 'docker compose up -d' manually" -ForegroundColor Yellow
+    }
+}
+
+# Show diagnostic information for troubleshooting
+Write-Host "Container status check:" -ForegroundColor Cyan
+Write-Host "- Running containers:" -ForegroundColor White
+docker ps --filter "name=gps-kiosk"
+Write-Host "- All containers:" -ForegroundColor White  
+docker ps -a --filter "name=gps-kiosk"
 
 # Wait for application to be ready
 Write-Host "Waiting for application to start..." -ForegroundColor Yellow
