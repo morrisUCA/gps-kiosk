@@ -63,46 +63,21 @@ if ($ShowCurrent) {
         }
         
     } catch {
-        Write-Host "Could not read current configuration: $($_.Exception.Message)" -ForegroundColor Red
+        Write-Host "Error checking configuration: $($_.Exception.Message)" -ForegroundColor Red
     }
-    exit 0
+    return
 }
 
-Write-Host "This will configure your computer for unattended GPS Kiosk operation:" -ForegroundColor Yellow
-Write-Host "  ✓ Enable automatic login for user: $Username" -ForegroundColor White
-Write-Host "  ✓ Add GPS Kiosk to Windows startup" -ForegroundColor White
-Write-Host "  ✓ Disable lock screen and screensaver" -ForegroundColor White
-Write-Host "  ✓ Keep display always on" -ForegroundColor White
-Write-Host "  ✓ Disable Windows update restarts (optional)" -ForegroundColor White
-Write-Host ""
-
-$confirm = Read-Host "Continue with kiosk configuration? (y/N)"
-if ($confirm -notlike "y*") {
-    Write-Host "Operation cancelled." -ForegroundColor Yellow
-    exit 0
-}
-
-Write-Host ""
-Write-Host "Configuring auto-login..." -ForegroundColor Yellow
+Write-Host "Configuring auto-login for user: $Username" -ForegroundColor Yellow
 
 try {
     # Configure auto-login registry entries
     $winlogonPath = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon"
-    
     Set-ItemProperty -Path $winlogonPath -Name "AutoAdminLogon" -Value "1" -Type String
     Set-ItemProperty -Path $winlogonPath -Name "DefaultUserName" -Value $Username -Type String
     Set-ItemProperty -Path $winlogonPath -Name "DefaultPassword" -Value $Password -Type String
     Set-ItemProperty -Path $winlogonPath -Name "AutoLogonCount" -Value 0 -Type DWord
     
-    Write-Host "Auto-login configured for user: $Username" -ForegroundColor Green
-} catch {
-    Write-Host "Failed to configure auto-login: $($_.Exception.Message)" -ForegroundColor Red
-    exit 1
-}
-
-Write-Host "Configuring kiosk display settings..." -ForegroundColor Yellow
-
-try {
     # Disable lock screen
     $personalizationPath = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Personalization"
     if (-not (Test-Path $personalizationPath)) {
@@ -110,13 +85,17 @@ try {
     }
     Set-ItemProperty -Path $personalizationPath -Name "NoLockScreen" -Value 1 -Type DWord
     
-    # Disable screensaver and keep display on
-    $screenSaverPath = "HKCU:\Control Panel\Desktop"
-    Set-ItemProperty -Path $screenSaverPath -Name "ScreenSaveActive" -Value "0" -Type String
-    Set-ItemProperty -Path $screenSaverPath -Name "ScreenSaverIsSecure" -Value "0" -Type String
-    Set-ItemProperty -Path $screenSaverPath -Name "ScreenSaveTimeOut" -Value "0" -Type String
+    Write-Host "✅ Auto-login configured for: $Username" -ForegroundColor Green
     
-    # Set power plan to never turn off display
+} catch {
+    Write-Host "Error configuring auto-login: $($_.Exception.Message)" -ForegroundColor Red
+    exit 1
+}
+
+# Configure display power settings for always-on kiosk
+Write-Host "Configuring display settings for kiosk mode..." -ForegroundColor Yellow
+try {
+    # Set power settings to prevent sleep/hibernate
     powercfg /change standby-timeout-ac 0
     powercfg /change standby-timeout-dc 0
     powercfg /change monitor-timeout-ac 0
@@ -124,7 +103,7 @@ try {
     powercfg /change hibernate-timeout-ac 0
     powercfg /change hibernate-timeout-dc 0
     
-    Write-Host "Display settings configured for kiosk mode" -ForegroundColor Green
+    Write-Host "✅ Display settings configured for kiosk mode" -ForegroundColor Green
 } catch {
     Write-Host "Warning: Some display settings may not have been applied: $($_.Exception.Message)" -ForegroundColor Yellow
 }
@@ -132,14 +111,16 @@ try {
 Write-Host "Adding GPS Kiosk to Windows startup..." -ForegroundColor Yellow
 
 try {
-    # Create the startup batch file if it doesn't exist
+    # Create the startup batch file
     $installPath = "C:\gps-kiosk"
-    $startupScript = '@echo off
+    $kioskUrl = "http://localhost:3000/@signalk/freeboard-sk/?zoom=12&northup=1&movemap=1&kiosk=1"
+    
+    # Create startup batch script content
+    $batchContent = @"
+@echo off
 REM GPS Kiosk Auto-Startup Script - Runs on every boot
-REM This ensures latest updates and launches the kiosk interface
-
 echo Starting GPS Kiosk Auto-Startup...
-cd /d "' + $installPath + '"
+cd /d "$installPath"
 
 REM Ensure Docker Desktop is running
 echo Checking Docker Desktop...
@@ -161,45 +142,45 @@ if exist .git (
     echo Updating GPS Kiosk to latest version...
     git reset --hard HEAD >nul 2>&1
     git pull >nul 2>&1
- + '
+)
 
-    REM Pull latest Docker images
-    echo Pulling latest Docker images...
-    docker compose pull >nul 2>&1
+REM Pull latest Docker images and start containers
+echo Pulling latest Docker images...
+docker compose pull >nul 2>&1
+echo Starting GPS Kiosk containers...
+docker compose down >nul 2>&1
+docker compose up -d >nul 2>&1
 
-    REM Stop and restart containers with latest images
-    echo Starting GPS Kiosk containers...
-    docker compose down >nul 2>&1
-    docker compose up -d >nul 2>&1
+REM Wait for application to be ready
+echo Waiting for GPS Kiosk to start...
+timeout /t 15 /nobreak >nul
 
-    REM Wait for application to be ready
-    echo Waiting for GPS Kiosk to start...
-    timeout /t 15 /nobreak >nul
+REM Check if application is responding
+:APP_WAIT
+curl -f http://localhost:3000/signalk/ >nul 2>&1
+if %ERRORLEVEL% NEQ 0 (
+    timeout /t 5 /nobreak >nul
+    goto APP_WAIT
+)
 
-    REM Check if application is responding
-    :APP_WAIT
-    powershell -Command "try { $response = Invoke-WebRequest -Uri ''http://localhost:3000/@signalk/freeboard-sk/'' -TimeoutSec 5; if ($response.StatusCode -eq 200) { exit 0 } else { exit 1 } } catch { exit 1 }" >nul 2>&1
-    if %ERRORLEVEL% NEQ 0 (
-        timeout /t 5 /nobreak >nul
-        goto APP_WAIT
-    )
+echo GPS Kiosk is ready! Launching kiosk interface...
+start msedge --kiosk "$kioskUrl" --edge-kiosk-type=fullscreen --no-first-run --user-data-dir=C:\KioskBrowser
 
-    echo GPS Kiosk is ready! Launching kiosk interface...
-    start msedge --kiosk "http://localhost:3000/@signalk/freeboard-sk/?zoom=12&northup=1&movemap=1&kiosk=1" --edge-kiosk-type=fullscreen --no-first-run --user-data-dir=C:\KioskBrowser
-
-    echo GPS Kiosk startup complete.'
+echo GPS Kiosk startup complete.
+"@
 
     $startupPath = "$installPath\start-gps-kiosk.bat"
-    $startupScript | Out-File -FilePath $startupPath -Encoding ASCII
+    $batchContent | Out-File -FilePath $startupPath -Encoding ASCII
     
     # Add to Windows startup registry
     $startupRegistry = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run"
     Set-ItemProperty -Path $startupRegistry -Name "GPS-Kiosk" -Value $startupPath
     
-    Write-Host "GPS Kiosk added to Windows startup" -ForegroundColor Green
-    Write-Host "Startup script: $startupPath" -ForegroundColor White
+    Write-Host "✅ GPS Kiosk added to Windows startup" -ForegroundColor Green
+    Write-Host "   Startup script: $startupPath" -ForegroundColor White
+    
 } catch {
-    Write-Host "Failed to configure startup: $($_.Exception.Message)" -ForegroundColor Red
+    Write-Host "Error configuring startup: $($_.Exception.Message)" -ForegroundColor Red
     exit 1
 }
 
@@ -212,9 +193,9 @@ if ($DisableUpdates) {
             New-Item -Path $updatePath -Force | Out-Null
         }
         Set-ItemProperty -Path $updatePath -Name "NoAutoRebootWithLoggedOnUsers" -Value 1 -Type DWord
-        Set-ItemProperty -Path $updatePath -Name "AUOptions" -Value 2 -Type DWord  # Notify before downloading
+        Set-ItemProperty -Path $updatePath -Name "AUOptions" -Value 2 -Type DWord
         
-        Write-Host "Windows Update restart disabled" -ForegroundColor Green
+        Write-Host "✅ Windows Update restart disabled" -ForegroundColor Green
     } catch {
         Write-Host "Warning: Could not configure Windows Update settings: $($_.Exception.Message)" -ForegroundColor Yellow
     }
@@ -224,29 +205,16 @@ Write-Host ""
 Write-Host "=== CONFIGURATION COMPLETE ===" -ForegroundColor Green
 Write-Host ""
 Write-Host "Your GPS Kiosk is now configured for unattended operation:" -ForegroundColor White
-Write-Host "  ✓ Auto-login enabled for user: $Username" -ForegroundColor Green
-Write-Host "  ✓ GPS Kiosk will start automatically on boot" -ForegroundColor Green
-Write-Host "  ✓ Display will stay on (no screensaver/sleep)" -ForegroundColor Green
-Write-Host "  ✓ Lock screen disabled" -ForegroundColor Green
-if ($DisableUpdates) {
-    Write-Host "  ✓ Automatic restart after Windows updates disabled" -ForegroundColor Green
-}
+Write-Host "  ✅ Auto-login enabled for user: $Username" -ForegroundColor Green
+Write-Host "  ✅ Lock screen disabled" -ForegroundColor Green
+Write-Host "  ✅ Display set to always-on" -ForegroundColor Green
+Write-Host "  ✅ GPS Kiosk added to startup" -ForegroundColor Green
 Write-Host ""
-Write-Host "NEXT STEPS:" -ForegroundColor Yellow
-Write-Host "1. Restart the computer to test the configuration" -ForegroundColor White
-Write-Host "2. The computer should automatically:" -ForegroundColor White
-Write-Host "   - Log in as $Username" -ForegroundColor Gray
-Write-Host "   - Start Docker Desktop" -ForegroundColor Gray
-Write-Host "   - Pull latest GPS Kiosk updates" -ForegroundColor Gray
-Write-Host "   - Launch the navigation interface in full-screen" -ForegroundColor Gray
+Write-Host "RESTART REQUIRED for changes to take effect" -ForegroundColor Yellow
 Write-Host ""
-Write-Host "GPS Kiosk URL: http://localhost:3000/@signalk/freeboard-sk/?zoom=12&northup=1&movemap=1&kiosk=1" -ForegroundColor Cyan
+Write-Host "After restart, your system will:" -ForegroundColor White
+Write-Host "  1. Boot directly to desktop (no login prompt)" -ForegroundColor White
+Write-Host "  2. Start Docker containers automatically" -ForegroundColor White
+Write-Host "  3. Launch GPS navigation in full kiosk mode" -ForegroundColor White
 Write-Host ""
-
-$restartNow = Read-Host "Restart computer now to test? (y/N)"
-if ($restartNow -like "y*") {
-    Write-Host "Restarting computer..." -ForegroundColor Yellow
-    Restart-Computer -Force
-} else {
-    Write-Host "Configuration saved. Restart when ready to test." -ForegroundColor Yellow
-}
+Write-Host "GPS Kiosk URL: $kioskUrl" -ForegroundColor Cyan
