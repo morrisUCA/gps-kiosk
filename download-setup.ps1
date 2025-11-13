@@ -106,7 +106,7 @@ New-Item -ItemType Directory -Force -Path $TempPath | Out-Null
 
 # Download repository ZIP from GitHub
 Write-Host "Downloading GPS Kiosk from GitHub..." -ForegroundColor Yellow
-$zipUrl = "https://github.com/morrisUCA/gps-kiosk/archive/refs/heads/dev-morris.zip"
+$zipUrl = "https://github.com/Uncruise/gps-kiosk/archive/refs/heads/main.zip"
 $zipPath = "$TempPath\gps-kiosk.zip"
 
 try {
