@@ -26,7 +26,7 @@
     0
   ],
   "aisTargets": true,
-  "courseData": true,
+  "courseData": false,
   "toolBarButtons": true,
   "notes": true,
   "popoverMulti": false,
