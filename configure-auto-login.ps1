@@ -113,7 +113,7 @@ Write-Host "Adding GPS Kiosk to Windows startup..." -ForegroundColor Yellow
 try {
     # Create the startup batch file
     $installPath = "C:\gps-kiosk"
-    $kioskUrl = "http://localhost:3000/@signalk/freeboard-sk/?zoom=12&northup=1&movemap=1&kiosk=1"
+    $kioskUrl = "http://localhost:3000/@signalk/freeboard-sk/?zoom=10&northup=1&movemap=1&kiosk=1"
     
     # Create startup batch script content
     $batchContent = @"
