@@ -6,6 +6,7 @@ services:
     container_name: gps-kiosk
     ports:
       - "3000:3000"
+      - "30:30"
     volumes:
       - ./Volume:/home/node/.signalk
     environment:

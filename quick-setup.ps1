@@ -588,7 +588,7 @@ Write-Host "=== Auto-Setup Complete! ===" -ForegroundColor Green
 Write-Host "GPS Kiosk will now:" -ForegroundColor White
 Write-Host "  ✅ Auto-start on every boot" -ForegroundColor White
 Write-Host "  ✅ Auto-pull latest Docker images" -ForegroundColor White
-Write-Host "  ✅ Auto-update Volume config from GitHub" -ForegroundColor White
+Write-Host "  ✅ Auto-update Volume config from GitHub (overwrites local settings)" -ForegroundColor White
 Write-Host "  ✅ Auto-launch in kiosk mode" -ForegroundColor White
 if ($configureAutoLogin -like "y*" -and $isAdmin) {
     Write-Host "  ✅ Auto-login configured (unattended operation)" -ForegroundColor White

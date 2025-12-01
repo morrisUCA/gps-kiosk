@@ -37,6 +37,25 @@
       ],
       "id": "SFX",
       "enabled": true
+    },
+    {
+      "pipeElements": [
+        {
+          "type": "providers/simple",
+          "options": {
+            "logging": false,
+            "type": "NMEA0183",
+            "subOptions": {
+              "validateChecksum": true,
+              "type": "tcp",
+              "host": "127.0.0.1",
+              "port": "23"
+            }
+          }
+        }
+      ],
+      "id": "SVO",
+      "enabled": true
     }
   ],
   "interfaces": {},
