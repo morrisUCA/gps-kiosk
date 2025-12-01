@@ -7,6 +7,7 @@ services:
     ports:
       - "3000:3000"
       - "30:30"
+      - "10110:10110"
     volumes:
       - ./Volume:/home/node/.signalk
     environment:
