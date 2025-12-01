@@ -37,13 +37,13 @@ foreach ($computer in $ComputerNames) {
             $status = docker ps --filter "name=gps-kiosk" --format "{{.Status}}" 2>$null
             
             return @{
-                Computer = $env:COMPUTERNAME
-                GitPull = $gitOutput -join " "
-                DockerStop = $stopOutput -join " "
-                DockerPull = $pullOutput -join " "
+                Computer    = $env:COMPUTERNAME
+                GitPull     = $gitOutput -join " "
+                DockerStop  = $stopOutput -join " "
+                DockerPull  = $pullOutput -join " "
                 DockerStart = $startOutput -join " "
-                Status = $status
-                Success = $status -like "*Up*"
+                Status      = $status
+                Success     = $status -like "*Up*"
             }
         }
         
