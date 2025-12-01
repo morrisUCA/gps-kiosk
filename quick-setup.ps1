@@ -457,6 +457,20 @@ if %ERRORLEVEL% NEQ 0 (
     goto APP_WAIT
 )
 
+REM Check computer name and start COM2TCP if needed
+echo Checking computer name for specialized configuration...
+if "%COMPUTERNAME%"=="SVO-GPS" (
+    echo Computer is SVO-GPS, starting COM2TCP for serial data bridge...
+    if exist "tools\com2tcp.exe" (
+        start "COM2TCP" /min "tools\com2tcp.exe" --baud 4800 \\.\COM4 127.0.0.1 10110
+        echo COM2TCP started: COM4 at 4800 baud -> 127.0.0.1:10110
+    ) else (
+        echo WARNING: COM2TCP executable not found in tools directory
+    )
+) else (
+    echo Computer name is %COMPUTERNAME%, skipping COM2TCP startup
+)
+
 echo GPS Kiosk is ready! Launching browser...
 start msedge --kiosk "http://localhost:3000/@signalk/freeboard-sk/?zoom=12&northup=1&movemap=1&kiosk=1" --edge-kiosk-type=fullscreen --no-first-run --user-data-dir=C:\KioskBrowser
 
