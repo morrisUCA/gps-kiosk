@@ -47,9 +47,7 @@
             "type": "NMEA0183",
             "subOptions": {
               "validateChecksum": true,
-              "type": "tcp",
-              "host": "127.0.0.1",
-              "port": "23"
+              "type": "tcpserver"
             }
           }
         }
